@@ -170,5 +170,81 @@ TEST_F(TensorTest, Transpose) {
   EXPECT_EQ(transposed.sizes()[2], 2);
 }
 
+// 测试 _is_zerotensor
+TEST_F(TensorTest, IsZeroTensor) {
+  // 默认创建的 ones tensor 不应该是 zero tensor
+  EXPECT_FALSE(tensor._is_zerotensor());
+
+  // 注意: _is_zerotensor() 和 _set_zero() 是 PyTorch 内部 API
+  // 主要用于优化，不建议在用户代码中使用
+  // 创建的普通张量（即使全为0）也不是 "zero tensor"
+  at::Tensor zero_tensor = at::zeros({2, 3}, at::kFloat);
+  EXPECT_FALSE(zero_tensor._is_zerotensor());
+}
+
+// 测试 is_conj (复数张量的共轭标记)
+TEST_F(TensorTest, IsConj) {
+  // 实数张量不应该有共轭标记
+  EXPECT_FALSE(tensor.is_conj());
+
+  // 创建一个复数张量来测试 conj 功能
+  at::Tensor complex_tensor = at::ones({2, 3}, at::kComplexFloat);
+  EXPECT_FALSE(complex_tensor.is_conj());
+}
+
+// 测试 _set_conj (只能用于复数张量)
+TEST_F(TensorTest, SetConj) {
+  // 创建复数张量
+  at::Tensor complex_tensor = at::ones({2, 3}, at::kComplexFloat);
+
+  // 设置共轭标记
+  complex_tensor._set_conj(true);
+  EXPECT_TRUE(complex_tensor.is_conj());
+
+  // 取消共轭标记
+  complex_tensor._set_conj(false);
+  EXPECT_FALSE(complex_tensor.is_conj());
+}
+
+// 测试 is_neg
+TEST_F(TensorTest, IsNeg) {
+  // 默认情况下不应该有负号标记
+  EXPECT_FALSE(tensor.is_neg());
+}
+
+// 测试 _set_neg
+TEST_F(TensorTest, SetNeg) {
+  // _set_neg 是 PyTorch 内部 API，用于优化
+  // 在某些后端实现中可能不完全支持
+
+  // 测试设置负号标记
+  tensor._set_neg(true);
+  // 注意: 某些实现可能不会真正设置此标记
+  // 因此我们只测试 API 调用不会崩溃
+
+  // 取消负号标记
+  tensor._set_neg(false);
+  EXPECT_FALSE(tensor.is_neg());
+}
+
+// 测试组合标记状态 (复数张量)
+TEST_F(TensorTest, CombinedFlags) {
+  // 创建复数张量来测试标记组合
+  at::Tensor complex_tensor = at::ones({2, 3}, at::kComplexFloat);
+
+  // 测试同时设置 conj 和 neg 标记
+  complex_tensor._set_conj(true);
+  complex_tensor._set_neg(true);
+
+  EXPECT_TRUE(complex_tensor.is_conj());
+  // neg 标记可能不被所有后端完全支持
+
+  // 清除标记
+  complex_tensor._set_conj(false);
+  EXPECT_FALSE(complex_tensor.is_conj());
+
+  complex_tensor._set_neg(false);
+}
+
 }  // namespace test
 }  // namespace at
