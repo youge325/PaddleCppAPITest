@@ -213,6 +213,85 @@ TEST_F(TensorTest, Transpose) {
   file.saveFile();
 }
 
+// 返回当前用例的结果文件名（用于逐个用例对比）
+static std::string GetTestCaseResultFileName() {
+  std::string base = g_custom_param.get();
+  std::string test_name =
+      ::testing::UnitTest::GetInstance()->current_test_info()->name();
+  if (base.size() >= 4 && base.substr(base.size() - 4) == ".txt") {
+    base.resize(base.size() - 4);
+  }
+  return base + "_" + test_name + ".txt";
+}
+
+// 测试 cuda
+TEST_F(TensorTest, CudaResult) {
+  FileManerger file(GetTestCaseResultFileName());
+  file.createFile();
+  try {
+    at::Tensor cuda_tensor = tensor.cuda();
+    file << "1 ";
+    file << std::to_string(static_cast<int>(cuda_tensor.device().type()))
+         << " ";
+    file << std::to_string(cuda_tensor.is_cuda() ? 1 : 0) << " ";
+    file << std::to_string(cuda_tensor.numel()) << " ";
+  } catch (const std::exception&) {
+    file << "0 ";
+  } catch (...) {
+    file << "0 ";
+  }
+  file.saveFile();
+}
+
+// 测试 is_pinned
+TEST_F(TensorTest, IsPinnedResult) {
+  FileManerger file(GetTestCaseResultFileName());
+  file.createFile();
+  file << std::to_string(tensor.is_pinned() ? 1 : 0) << " ";
+  int pinned_after_cuda = 0;
+  try {
+    at::Tensor cuda_tensor = tensor.cuda();
+    at::Tensor pinned_tensor = cuda_tensor.pin_memory();
+    pinned_after_cuda = pinned_tensor.is_pinned() ? 1 : 0;
+  } catch (...) {
+    pinned_after_cuda = 0;
+  }
+  file << std::to_string(pinned_after_cuda) << " ";
+  file.saveFile();
+}
+
+// 测试 pin_memory
+TEST_F(TensorTest, PinMemoryResult) {
+  FileManerger file(GetTestCaseResultFileName());
+  file.createFile();
+  int gpu_pin_ok = 0;
+  try {
+    at::Tensor cuda_tensor = tensor.cuda();
+    at::Tensor pinned_tensor = cuda_tensor.pin_memory();
+    gpu_pin_ok = pinned_tensor.is_pinned() ? 1 : 0;
+  } catch (...) {
+    gpu_pin_ok = 0;
+  }
+  file << std::to_string(gpu_pin_ok) << " ";
+  file.saveFile();
+  // 测试 sym_size
+  TEST_F(TensorTest, SymSize) {
+    // 获取符号化的单个维度大小
+    c10::SymInt sym_size_0 = tensor.sym_size(0);
+    c10::SymInt sym_size_1 = tensor.sym_size(1);
+    c10::SymInt sym_size_2 = tensor.sym_size(2);
+
+    // 验证符号化大小与实际大小一致
+    EXPECT_EQ(sym_size_0, 2);
+    EXPECT_EQ(sym_size_1, 3);
+    EXPECT_EQ(sym_size_2, 4);
+
+    // 测试负索引
+    c10::SymInt sym_size_neg1 = tensor.sym_size(-1);
+    EXPECT_EQ(sym_size_neg1, 4);
+  }
+}
+
 // 测试 sym_size
 TEST_F(TensorTest, SymSize) {
   // 获取符号化的单个维度大小
