@@ -27,8 +27,8 @@
 | torch API | paddle API 兼容性 | 备注 |
 |---|---|---|
 | `DataPtr()` | ✅ | 已实现 |
-| `DataPtr(void*, Device)` | 🔧 | 已实现；设备映射仅覆盖 CPU/CUDA，其他类型归为 `UNDEFINED` |
-| `DataPtr(void*, void*, DeleterFnPtr, Device)` | 🔧 | 已实现；设备语义同上 |
+| `DataPtr(void*, Device)` | ✅ | 已实现；完整保留 `Device`（含 device index），通过 `device._PD_GetInner()` 存入 `phi::Place` |
+| `DataPtr(void*, void*, DeleterFnPtr, Device)` | ✅ | 已实现；device index 保留语义同上 |
 | `operator->()` | ✅ | 已实现 |
 | `unsafe_reset_data_and_ctx()` | ✅ | 已实现 |
 | `clear()` | ✅ | 已实现 |
@@ -40,9 +40,9 @@
 | `operator bool()` | ✅ | 已实现 |
 | `cast_context<T>()` | ✅ | 已实现 |
 | `get_deleter()` | ✅ | 已实现 |
-| `device()` | 🔧 | 已实现；通过 `phi::Place` 反向映射到 `c10::Device` |
+| `device()` | ✅ | 已实现；返回 `Device(device_)`（利用 `phi::Place` 到 `c10::Device` 隐式转换），完整保留 device index |
 | `compare_exchange_deleter()` | ✅ | 已实现 |
-| `unsafe_set_device()` | ❌ | 未实现 |
+| `unsafe_set_device()` | ✅ | 已实现；通过 `device._PD_GetInner()` 更新内部 `phi::Place` |
 | `operator==(DataPtr, nullptr_t)` | ✅ | 已实现 |
 | `operator==(nullptr_t, DataPtr)` | ✅ | 已实现 |
 | `operator!=(DataPtr, nullptr_t)` | ✅ | 已实现 |
@@ -103,8 +103,8 @@
 
 | 状态 | 数量 |
 |---|---|
-| ✅ 已实现 | 23 |
-| 🔧 部分兼容 | 3 |
+| ✅ 已实现 | 26 |
+| 🔧 部分兼容 | 0 |
 | ❌ 未实现 | 16 |
 
 ---
@@ -113,4 +113,4 @@
 
 - `DataPtr` 核心接口和 `Allocator` 主体接口在 compat 头文件中已基本具备。
 - 与上游 PyTorch 的主要差距集中在：全局分配器注册机制、`InefficientStdFunctionContext`、内存分析与 `CachingAllocator` 相关接口。
-- 设备语义是当前的主要“部分兼容”点：Paddle 侧实现基于 `phi::Place`，并非完全等价于 PyTorch 的 `c10::Device` 语义集合。
+- **PR #78060 修复记录**：`DataPtr::device()` 现在完整保留 GPU device index（多卡场景下 `device().index()` 返回正确值）；新增 `unsafe_set_device()` 实现。内部实现通过 `c10::Device::_PD_GetInner()` 直接存储完整 `phi::Place`。

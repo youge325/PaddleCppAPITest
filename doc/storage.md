@@ -57,11 +57,11 @@
 |---|---|---|
 | `data()` | ✅ | 已实现 |
 | `mutable_data()` | ✅ | 已实现 |
-| `mutable_data_ptr()` | 🔧 | PyTorch 返回 `DataPtr&`，Paddle 返回按值 `DataPtr` |
-| `data_ptr()` | 🔧 | PyTorch 返回 `const DataPtr&`，Paddle 返回按值 `DataPtr` |
-| `set_data_ptr(DataPtr&&)` | ❌ | **PR #78060 修复**：已移除，DataPtr 无法安全转换为 phi::Allocation*，避免未定义行为 |
-| `set_data_ptr_noswap(DataPtr&&)` | ❌ | **PR #78060 修复**：已移除，同上 |
-| `set_data_ptr(shared_ptr<phi::Allocation>)` | ✅ | Paddle 特有，使用 shared_ptr 替代 DataPtr 版本 |
+| `mutable_data_ptr()` | ✅ | 返回 `DataPtr&`（引用），与 PyTorch 语义一致 |
+| `data_ptr()` | ✅ | 返回 `const DataPtr&`（引用），与 PyTorch 语义一致 |
+| `set_data_ptr(DataPtr&&)` | ✅ | **PR #78060 修复**：已重新实现，接受 `DataPtr&&`，返回旧 DataPtr，不再有不安全类型转换 |
+| `set_data_ptr_noswap(DataPtr&&)` | ✅ | **PR #78060 修复**：已重新实现，接受 `DataPtr&&` |
+| `set_data_ptr(shared_ptr<phi::Allocation>)` | ✅ | Paddle 特有，使用 shared_ptr 管理 phi::Allocation 生命周期 |
 | `set_data_ptr_noswap(shared_ptr<phi::Allocation>)` | ✅ | Paddle 特有，直接使用 phi::Allocation |
 
 ---
@@ -141,9 +141,9 @@
 
 | 状态 | 数量 |
 |---|---|
-| ✅ 已实现 | 25 |
-| 🔧 部分兼容 | 10 |
-| ❌ 未实现 | 14 |
+| ✅ 已实现 | 29 |
+| 🔧 部分兼容 | 8 |
+| ❌ 未实现 | 12 |
 
 ---
 
@@ -152,7 +152,9 @@
 - Paddle compat 的 `Storage` 已覆盖基础生命周期、数据访问与别名检查主路径。
 - 与 PyTorch 的主要差距在 `StorageImpl` 体系相关接口（`intrusive_ptr/weak_ptr/legacy/external pointer/SymInt`）。
 - **PR #78060 修复记录**:
-  - 已移除不安全的 `set_data_ptr(DataPtr&&)` 和 `set_data_ptr_noswap(DataPtr&&)` 接口
-  - 这些接口将 DataPtr 的原始指针强制转换为 phi::Allocation*，可能导致未定义行为
-  - 请使用安全的 `set_data_ptr(shared_ptr<phi::Allocation>)` 替代版本
-- 主要“部分兼容”来自底层模型差异：Paddle 以 `phi::Allocation` 和 `phi::Place` 为核心，导致 `data_ptr` 引用语义、设备类型与 traits 签名与上游不完全一致。
+  - `data_ptr()` 现在返回 `const DataPtr&`（引用），`mutable_data_ptr()` 返回 `DataPtr&`（引用），与 PyTorch 语义一致
+  - 重新实现 `set_data_ptr(DataPtr&&)` 和 `set_data_ptr_noswap(DataPtr&&)`，不再有不安全类型转换
+  - 保留 Paddle 特有的 `set_data_ptr(shared_ptr<phi::Allocation>)` 重载
+  - Storage 内部新增 `data_ptr_` 成员（`DataPtr` 类型）作为 PyTorch 兼容引用的持有者
+  - 对 phi::Allocation 原生路径，`data_ptr_` 是非拥有性视图，不增加 allocation 的 refcount
+  - `use_count()` 仍反映 `allocation_.use_count()`，行为与修复前一致
