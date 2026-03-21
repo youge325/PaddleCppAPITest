@@ -70,9 +70,9 @@
 
 | torch API | paddle API 兼容性 | 备注 |
 |---|---|---|
-| `device_type()` | 🔧 | PyTorch 为 `DeviceType`，Paddle 为 `phi::AllocationType` |
+| `device_type()` | 🔧 | PyTorch 为 `DeviceType`，Paddle 为 `phi::AllocationType`；两条路径均已正确处理：allocation-backed 路径从 `allocation_->place()` 取值，external DataPtr 路径从 `data_ptr_->device()` 取值 |
 | `allocator()` | 🔧 | PyTorch 返回 `at::Allocator*`，Paddle 返回 `phi::Allocator*` |
-| `device()` | 🔧 | PyTorch 返回 `at::Device`，Paddle 返回 `phi::Place` |
+| `device()` | 🔧 | PyTorch 返回 `at::Device`，Paddle 返回 `phi::Place`；两条路径均已正确处理：allocation-backed 路径从 `allocation_->place()` 取值，external DataPtr 路径从 `data_ptr_->device()._PD_GetInner()` 取值（完整保留 device index） |
 
 ---
 
@@ -84,8 +84,8 @@
 | `unsafeGetStorageImpl()` | ❌ | 缺失 |
 | `getWeakStorageImpl()` | ❌ | 缺失 |
 | `operator bool()` | ✅ | 已实现 |
-| `use_count()` | ✅ | 已实现 |
-| `unique()` | ✅ | 已实现 |
+| `use_count()` | ✅ | 已实现；allocation-backed 路径返回 `allocation_.use_count()`；external DataPtr（含 deleter）路径返回 `external_ctx_.use_count()`；external DataPtr（无 deleter 但有非空指针）路径返回 `data_ptr_.use_count()`；默认构造（空）Storage 返回 0 |
+| `unique()` | ✅ | 已实现；委托给 `use_count() == 1`，语义覆盖 allocation-backed 和 external DataPtr 两条路径 |
 | `is_alias_of(const Storage&)` | ✅ | 已实现 |
 
 ---
@@ -155,6 +155,9 @@
   - `data_ptr()` 现在返回 `const DataPtr&`（引用），`mutable_data_ptr()` 返回 `DataPtr&`（引用），与 PyTorch 语义一致
   - 重新实现 `set_data_ptr(DataPtr&&)` 和 `set_data_ptr_noswap(DataPtr&&)`，不再有不安全类型转换
   - 保留 Paddle 特有的 `set_data_ptr(shared_ptr<phi::Allocation>)` 重载
-  - Storage 内部使用 `std::shared_ptr<DataPtr> data_ptr_` 作为 PyTorch 兼容引用的持有者；拷贝 Storage 时共享同一个 `shared_ptr<DataPtr>`，确保外部 DataPtr 路径（`set_data_ptr(DataPtr&&)`）的 context/deleter 不会在拷贝后悬空
+  - Storage 内部使用 `std::shared_ptr<DataPtr> data_ptr_` 作为 PyTorch 兼容引用的持有者；拷贝 Storage 时共享同一个 `shared_ptr<DataPtr>`，确保外部 DataPtr 路径的 context/deleter 不会在拷贝后悬空
   - 对 phi::Allocation 原生路径，`*data_ptr_` 是非拥有性视图（仅含原始指针+device），不增加 allocation 的 refcount
-  - `use_count()` 仍反映 `allocation_.use_count()`，行为与修复前一致
+  - **后续修复**（external DataPtr 路径语义对齐）：
+    - `device_type()` / `device()`：当 `allocation_` 为空时，改为从 `data_ptr_->device()` 读取设备信息，解决 external DataPtr 路径下始终报告 CPU / default place 的问题
+    - `use_count()`：当 `allocation_` 为空时，优先使用 `external_ctx_.use_count()`（有 deleter 时）或 `data_ptr_.use_count()`（无 deleter 但有效指针时），默认构造（空）Storage 返回 0；解决了 external DataPtr 路径下 `use_count()` 始终为 0 的问题
+    - `unique()`：委托给 `use_count() == 1`，语义覆盖两条路径
