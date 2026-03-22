@@ -40,8 +40,8 @@ PyTorch 中，所有 `TensorBase` wrapper 共享同一个 `TensorImpl`，因此 
 ```mermaid
 flowchart TD
     subgraph WRAPPERS["at::TensorBase wrappers（value 语义）"]
-        W1["TensorBase t1\nactive_storage_ (weak_ptr)"]
-        W2["TensorBase t2 = t1\nactive_storage_ (weak_ptr)"]
+        W1["TensorBase t1\nactive_storage_ (shared_ptr)"]
+        W2["TensorBase t2 = t1\nactive_storage_ (shared_ptr)"]
     end
 
     subgraph REG["at::detail::TensorStorageRegistry\n（Meyers singleton）"]
@@ -67,18 +67,18 @@ flowchart TD
     REG -->|"cache hit: weak_ptr.lock()"| IMPL
     S1 --> IMPL
     S2 --> IMPL
-    W1 -.->|"active_storage_ (weak_ptr)"| IMPL
-    W2 -.->|"active_storage_ (weak_ptr)"| IMPL
+    W1 -->|"active_storage_ (shared_ptr)"| IMPL
+    W2 -->|"active_storage_ (shared_ptr)"| IMPL
     IMPL --> ALLOC
     DT --> ALLOC
 ```
 
 ### 工作流程说明
 
-1. `t1.storage()` 时：以 `DenseTensor*` 为 key 在注册表中查找。若无命中（cache miss），新建 `StorageImpl` 并写入注册表（`weak_ptr` 保证不阻止销毁）；同时设置 `t1.active_storage_`。
-2. `t2 = t1`（同一底层 DenseTensor）调用 `t2.storage()` 时：注册表命中，`weak_ptr.lock()` 成功，返回与 s1 共享同一 `StorageImpl` 的 handle；同时设置 `t2.active_storage_`。
+1. `t1.storage()` 时：以 `DenseTensor*` 为 key 在注册表中查找。若无命中（cache miss），新建 `StorageImpl` 并写入注册表（注册表存 `weak_ptr`，不阻止销毁）；同时将 `t1.active_storage_`（`shared_ptr`）指向该 `StorageImpl`，tensor 自身成为一个持有者。
+2. `t2 = t1`（同一底层 DenseTensor）调用 `t2.storage()` 时：注册表命中，`weak_ptr.lock()` 成功，返回与 s1 共享同一 `StorageImpl` 的 handle；同时设置 `t2.active_storage_`（`shared_ptr`）。
 3. 通过 s1 调用 `set_data_ptr_noswap(new_alloc)` 后：`StorageImpl::data_ptr_` 被修改；s2 的 `data()` 和 `t1.data_ptr()` / `t2.data_ptr()` 均通过 `active_storage_` 读到新地址。
-4. 所有 Storage handle 释放后：`StorageImpl` 引用计数归零，自动销毁；注册表的 `weak_ptr` 自动过期，下次访问时自动重建。
+4. 外部 Storage handle（s1、s2）全部释放后：tensor 的 `active_storage_`（`shared_ptr`）仍持有 `StorageImpl`，保证 mutation 不丢失；`StorageImpl` 在 TensorBase 析构后才随 `active_storage_` 析构而销毁，届时注册表的 `weak_ptr` 自动过期，下次调用 `storage()` 时自动重建。
 
 ---
 
@@ -137,7 +137,7 @@ classDiagram
 | allocation-backed | 无（直接通过 DataPtr） | `shared_ptr<phi::Allocation>`（额外保存） |
 | DataPtr 视图 | 由 Allocator 的 deleter 管理 | 对 phi::Allocation：非拥有性原始指针视图；外部 DataPtr：直接存储 |
 | 设备信息来源 | `data_ptr_.device()` | `allocation_->place()` 或 `data_ptr_.device()` |
-| 引用计数来源 | `intrusive_ptr` 计数 | 统一使用 `impl_.use_count()`（共享同一 StorageImpl 的 Storage handle 数量） |
+| 引用计数来源 | `intrusive_ptr` 计数 | 统一使用 `impl_.use_count()`（所有持有同一 StorageImpl 的 `Storage` handle 数量 + tensor 自身的 `active_storage_` 引用） |
 | copy-on-write | 无（single StorageImpl） | 无（已移除 CoW；共享 impl_ 直接传播写操作） |
 
 ### use_count() 计算依据
@@ -149,9 +149,10 @@ size_t use_count() const {
 }
 ```
 
-- **统一返回 `impl_.use_count()`**：反映共享该 `StorageImpl` 的 `Storage` handle 数量，与 PyTorch 的 `storage_impl_.use_count()` 语义完全一致
+- **统一返回 `impl_.use_count()`**：反映所有持有该 `StorageImpl` 的强引用总数，包括 `Storage` handle 和 tensor 的 `active_storage_`（`shared_ptr`）引用，与 PyTorch `TensorImpl` 自身也持有 `Storage` handle 的语义一致
+- **典型计数示例**：单 tensor + 一个 Storage handle：`use_count == 2`（tensor 的 `active_storage_` + 外部 handle）；两个共享底层 DenseTensor 的 wrapper 各持有一个 Storage handle：`use_count == 4`
 - **空/无效 Storage**：`valid()` 返回 false 时返回 0（即既无 allocation 也无有效 DataPtr 时）
-- **不再计入内部引用**：旧实现在 allocation-backed 路径返回 `allocation_.use_count()`，会将 `DenseTensor::holder_`、`StorageImpl::allocation_` 等内部保活引用计入，导致单 tensor 场景报告 4，共享 tensor 场景报告 5。新实现只统计 Storage handle 数量，行为符合 PyTorch 预期。
+- **不再计入内部引用**：旧实现在 allocation-backed 路径返回 `allocation_.use_count()`，会将 `DenseTensor::holder_`、`StorageImpl::allocation_` 等内部保活引用计入，导致单 tensor 场景报告 4，共享 tensor 场景报告 5。新实现只统计 `StorageImpl` 的 `shared_ptr` 持有者数量，行为符合 PyTorch 预期。
 
 ### Reference Semantics：写操作传播示意
 
@@ -264,7 +265,7 @@ c10::Allocator* getCUDADeviceAllocator() {
    assert(t1.data_ptr() == new_alloc->ptr()); // ✅ TensorBase::data_ptr() 也感知新地址
    ```
 
-   实现机制：全局 `at::detail::TensorStorageRegistry`（Meyers singleton，`std::mutex` + `std::unordered_map`），以 `phi::TensorBase*`（DenseTensor impl 指针）为 key，存储 `std::weak_ptr<StorageImpl>`，保证 StorageImpl 在所有 handle 释放后自然销毁。每个 `TensorBase` 实例还持有一个轻量的 `mutable std::weak_ptr<c10::StorageImpl> active_storage_`，供 `data_ptr()` 在不经全局注册表查询的情况下感知 StorageImpl 上的写操作。
+   实现机制：全局 `at::detail::TensorStorageRegistry`（Meyers singleton，`std::mutex` + `std::unordered_map`），以 `phi::TensorBase*`（DenseTensor impl 指针）为 key，存储 `std::weak_ptr<StorageImpl>`（注册表不延长 StorageImpl 生命周期）。每个 `TensorBase` 实例持有 `mutable std::shared_ptr<c10::StorageImpl> active_storage_`，在 `storage()` 首次调用时设置：(1) 使 tensor 自身计入 `use_count()`，对齐 PyTorch `TensorImpl` 持有 `Storage` handle 的语义；(2) 保证通过 `set_data_ptr_noswap()` 写入的 mutation 在外部 Storage handle 全部析构后仍存活于 tensor 中。
 
 3. **phi::Allocation DataPtr 视图**：allocation-backed 路径中，`impl_->data_ptr_` 是对 `phi::Allocation` 的非拥有性视图（只含原始指针 + device，无 deleter），引用计数由 `impl_->allocation_` 独立维护，`use_count()` 不会因 DataPtr 的存在而虚增。
 
