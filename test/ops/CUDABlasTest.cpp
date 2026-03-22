@@ -95,7 +95,7 @@ TEST_F(CUDABlasTest, HandleNonNull) {
     auto handle = at::cuda::getCurrentCUDABlasHandle();
     file << std::to_string(handle != nullptr ? 1 : 0) << " ";
   } catch (const std::exception& e) {
-    file << "exception:" << e.what() << " ";
+    file << "exception ";
   }
 #endif
   file << "\n";
@@ -135,7 +135,7 @@ TEST_F(CUDABlasTest, HandleConsistency) {
     auto handle2 = at::cuda::getCurrentCUDABlasHandle();
     file << std::to_string(handle1 == handle2 ? 1 : 0) << " ";
   } catch (const std::exception& e) {
-    file << "exception:" << e.what() << " ";
+    file << "exception ";
   }
 #endif
   file << "\n";

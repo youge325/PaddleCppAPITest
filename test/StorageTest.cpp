@@ -169,9 +169,11 @@ TEST_F(StorageTest, Storage) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.createFile();
+  file << "Storage ";
 
   c10::Storage storage = tensor.storage();
   file << std::to_string(storage.data_ptr().get() != nullptr) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -180,9 +182,11 @@ TEST_F(StorageTest, StorageOffset) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageOffset ";
 
   int64_t offset = tensor.storage_offset();
   file << std::to_string(offset) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -191,8 +195,10 @@ TEST_F(StorageTest, HasStorage) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "HasStorage ";
 
   file << std::to_string(tensor.has_storage()) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -201,6 +207,7 @@ TEST_F(StorageTest, StorageNbytes) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageNbytes ";
 
   c10::Storage storage = tensor.storage();
   // 2*3*4 = 24 个 float 元素，每个 4 字节
@@ -208,6 +215,7 @@ TEST_F(StorageTest, StorageNbytes) {
   file << std::to_string(storage.nbytes()) << " ";
   file << std::to_string(expected_nbytes) << " ";
   file << std::to_string(storage.nbytes() >= expected_nbytes) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -216,6 +224,7 @@ TEST_F(StorageTest, SlicedTensorStorageOffset) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "SlicedTensorStorageOffset ";
 
   // 对 tensor 进行切片操作
   at::Tensor sliced = tensor.slice(0, 1, 2);  // 在第0维取索引1到2
@@ -226,6 +235,7 @@ TEST_F(StorageTest, SlicedTensorStorageOffset) {
   // 切片后的 offset 应该大于 0
   file << std::to_string(sliced.storage_offset()) << " ";
   file << std::to_string(sliced.storage_offset() > 0) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -234,12 +244,14 @@ TEST_F(StorageTest, StorageDataPtr) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageDataPtr ";
 
   c10::Storage storage = tensor.storage();
   void* storage_ptr = storage.data_ptr().get();
   void* tensor_ptr = tensor.data_ptr();
   // 对于 offset 为 0 的 tensor，两个指针应该相同
   file << std::to_string(storage_ptr == tensor_ptr) << " ";
+  file << "\n";
   file.saveFile();
 }
 
@@ -247,6 +259,7 @@ TEST_F(StorageTest, StorageSetNbytesResizableMutableDataAllocator) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageSetNbytesResizableMutableDataAllocator ";
 
   c10::Storage storage = tensor.storage();
   size_t before_nbytes = storage.nbytes();
@@ -264,6 +277,7 @@ TEST_F(StorageTest, StorageSetNbytesResizableMutableDataAllocator) {
                          (allocator_ptr != nullptr))
        << " ";
 
+  file << "\n";
   file.saveFile();
 }
 
@@ -271,6 +285,7 @@ TEST_F(StorageTest, StorageUniqueAndAlias) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageUniqueAndAlias ";
 
   c10::Storage base_storage = tensor.storage();
   at::Tensor alias_tensor = tensor.slice(0, 0, 1);
@@ -283,6 +298,7 @@ TEST_F(StorageTest, StorageUniqueAndAlias) {
   file << std::to_string(base_storage.is_alias_of(alias_storage)) << " ";
   file << std::to_string(base_storage.is_alias_of(cloned_storage)) << " ";
 
+  file << "\n";
   file.saveFile();
 }
 
@@ -290,6 +306,7 @@ TEST_F(StorageTest, StorageUnsafeAllocationProbe) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageUnsafeAllocationProbe ";
 
   c10::Storage storage = tensor.storage();
   file << std::to_string(storage_unsafe_get_allocation_api_probe(storage))
@@ -297,6 +314,7 @@ TEST_F(StorageTest, StorageUnsafeAllocationProbe) {
   file << std::to_string(storage_unsafe_release_allocation_api_probe(storage))
        << " ";
 
+  file << "\n";
   file.saveFile();
 }
 
@@ -304,6 +322,7 @@ TEST_F(StorageTest, StorageSetDataPtrNoswapAndTraitsProbe) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
+  file << "StorageSetDataPtrNoswapAndTraitsProbe ";
 
   c10::Storage storage = tensor.storage();
   at::DataPtr old_ptr = storage.set_data_ptr(at::DataPtr());
@@ -371,6 +390,7 @@ TEST_F(StorageTest, StorageSetDataPtrNoswapAndTraitsProbe) {
   file << std::to_string(shared_alias ? 1 : 0) << " ";
   file << std::to_string(shared_clone ? 1 : 0) << " ";
 
+  file << "\n";
   file.saveFile();
 }
 

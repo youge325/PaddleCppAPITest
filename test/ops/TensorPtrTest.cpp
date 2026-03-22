@@ -32,7 +32,8 @@ TEST(TensorBodyTest, PtrTest) {
   // We should write to file to check values
   auto file_name = g_custom_param.get();
   paddle_api_test::FileManerger file(file_name);
-  file.openAppend();
+  file.createFile();
+  file << "PtrTest ";
 #if USE_PADDLE_API
   file << "typed_ptr_unavailable_on_paddle_compat\n";
   file << "void_const_ptr_nonnull: "
@@ -46,6 +47,7 @@ TEST(TensorBodyTest, PtrTest) {
   file << "mut_ptr[0]: " + std::to_string(mut_ptr[0]) + "\n";
 #endif
 
+  file << "\n";
   file.saveFile();
   // Type mismatch crash check?
   // const int* int_ptr = t.const_data_ptr<int>(); // Might throw
