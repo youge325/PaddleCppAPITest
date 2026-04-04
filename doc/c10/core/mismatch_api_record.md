@@ -20,7 +20,7 @@
 ### 本轮修改文件
 
 - `/home/may/Paddle/paddle/phi/api/include/compat/c10/core/Event.h` - 改为 lazy-create，补齐 device index 与 timing 语义
-- `/home/may/Paddle/paddle/phi/api/include/compat/c10/cuda/CUDAStream.h` - 恢复 `raw_stream()` 兼容入口
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/cuda/CUDAStream.h` - ~~恢复 `raw_stream()` 兼容入口~~ 已删除（PyTorch 无此接口）
 - `/home/may/Paddle/paddle/phi/api/include/compat/ATen/ops/record_stream.h` - 恢复 `record_stream(cudaStream_t)` 兼容重载
 - `/home/may/Paddle/test/cpp/compat/c10_Event_test.cc` - 新增 Event 语义回归
 - `/home/may/Paddle/test/cpp/compat/ATen_record_stream_test.cc` - 补充 raw-stream 兼容路径验证

@@ -58,7 +58,7 @@
 | torch API | paddle API 兼容性 | 测试用例状态 | 优先级 | 备注 |
 |-----------|------------------|------------|-------|------|
 | `getStreamFromPool(const bool isHighPriority = false, DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 默认参数已对齐；`getStreamFromPool(true)` 不会再误绑到 `int` 重载，`c10_Stream_test` 覆盖 |
-| `getStreamFromPool(const int priority, DeviceIndex device_index = -1)` | 🔧 | - [x] | P1 | PyTorch 会按优先级等级做 clamp；Paddle 当前仅区分 `priority < 0` 高优先级与 `priority >= 0` 低优先级两档 |
+| `getStreamFromPool(const int priority, DeviceIndex device_index = -1)` | ✅ | - [x] | P1 | 已实现，使用 `std::clamp` 映射到最多 4 档优先级，与 PyTorch 一致 |
 | `getStreamFromExternal(cudaStream_t, DeviceIndex)` | ✅ | - [x] | P1 | 已实现，通过 `make_cuda_stream()` 包装外部流 |
 | `getDefaultCUDAStream(DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 已实现，返回默认 null stream（`id == 0`），`c10_Stream_test` 覆盖稳定性与不受 `setCurrentCUDAStream()` 影响 |
 | `getCurrentCUDAStream(DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 已实现，保持 per-thread、per-device current stream 语义；TLS 未设置时回退到 phi 当前流 |
@@ -90,8 +90,8 @@
 
 | 状态 | 数量 |
 |---|---|
-| ✅ 已实现 | 27 |
-| 🔧 部分兼容 | 2 |
+| ✅ 已实现 | 28 |
+| 🔧 部分兼容 | 1 |
 | ❌ 未实现 | 11 |
 
 ---
@@ -112,12 +112,9 @@
    - `getStreamFromPool(int, ...)` 的优先级分档语义需要结合 PyTorch `.cpp` 实现判断，不能只看声明。
 
 3. **主要差异说明**：
-   - `getStreamFromPool(int, ...)` 在 PyTorch 中会按 `priority` 等级映射到多档 stream pool；Paddle 当前实现仅保留“高/低优先级”两档。
+   - `getStreamFromPool(int, ...)` 现已与 PyTorch 对齐，使用 `std::clamp` 将优先级映射到最多 4 档 stream pool。
    - `priority_range()` 在 CUDA 路径上可视为对齐；若构建为 HIP，PyTorch 会把 `least_priority` 规范化为 `0`，Paddle 当前未做该归一化。
    - PyTorch 在 `USE_ROCM` 下还暴露 `c10::hip` backward-compat alias；Paddle 当前 compat 头文件未覆盖这组入口。
-
-4. **Paddle 额外兼容面（未计入统计）**：
-   - `raw_stream()`：作为 legacy alias 保留，当前行为等价于 `stream()`；`/home/may/Paddle/test/cpp/compat/c10_Event_test.cc` 与 `/home/may/Paddle/test/cpp/compat/ATen_record_stream_test.cc` 已直接使用该入口。
    - `make_cuda_stream(cudaStream_t, DeviceIndex)`：Paddle 额外提供的辅助包装函数，PyTorch `CUDAStream.h` 无同名公开入口。
    - `at::cuda` using alias：Paddle 在该头文件尾部直接导出了 `CUDAStream`、`getCurrentCUDAStream`、`getDefaultCUDAStream`、`getStreamFromExternal`、`getStreamFromPool`、`setCurrentCUDAStream`。
 

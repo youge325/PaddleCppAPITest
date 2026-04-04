@@ -37,7 +37,7 @@
 | 测试项 | 当前 Paddle | PyTorch | 结论 |
 |--------|-------------|---------|------|
 | `getStreamFromPool(true)` 默认参数与重载分派 | bool 重载已恢复 `device_index = -1` 默认参数，不再误绑到 `int priority` 重载并返回低优先级 stream | 同签名、同语义 | ✅ 已对齐 |
-| `CUDAStream::raw_stream()` legacy compatibility | 当前 compat surface 继续保留，行为等价于 `stream()` | 上游无该旧入口 | ✅ 非上游接口，但兼容面稳定 |
+| `CUDAStream::raw_stream()` | ~~当前 compat surface 继续保留~~ 已删除（PyTorch 无此接口） | 上游无该旧入口 | ✅ 已删除，与 PyTorch 对齐 |
 
 说明：
 
