@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-04-04 Quantized Types 与 Float4_e2m1fn_x2 语义对齐（Paddle 内部 ctest）
+
+### 本轮修复（已解决）
+
+| 测试项 | 修复前 Paddle | 修复后 Paddle | PyTorch | 状态 |
+|--------|---------------|---------------|---------|------|
+| `qint8` / `qint32` / `quint8` / `quint4x2` / `quint2x4` | 缺少 `using underlying = ...` 别名，无 `alignas(...)` | 已添加 `using underlying` 和对应 `alignas` | 一致 | ✅ 已对齐 |
+| `Float4_e2m1fn_x2` | 字段名为 `x`，无比较运算符 | 字段名改为 `val_`，添加 `operator==/!=` | 一致 | ✅ 已对齐 |
+
+说明：
+
+- 本轮修复针对 reviewer 指出的两类问题：
+  1. quantized wrapper 类型缺少 `underlying` 类型别名，下游使用 `AT_DISPATCH_CASE_QINT` 等宏时会依赖 `typename scalar_t::underlying`。
+  2. `Float4_e2m1fn_x2` 字段名与 PyTorch 不一致（`x` vs `val_`），且缺少比较运算符，导致依赖这些公开成员的代码不兼容。
+- 对齐后通过 Paddle 内部 `ctest -R c10 --output-on-failure` 与 `ctest -R ATen --output-on-failure` 验证，全部测试通过。
+- 参考 PyTorch 实现：`torch/headeronly/util/qint8.h`、`qint32.h`、`quint8.h`、`quint4x2.h`、`quint2x4.h`、`Float4_e2m1fn_x2.h`。
+
+### 本轮修改文件
+
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/qint8.h` - 添加 `using underlying = int8_t` 和 `alignas(1)`
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/qint32.h` - 添加 `using underlying = int32_t` 和 `alignas(4)`
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/quint8.h` - 添加 `using underlying = uint8_t` 和 `alignas(1)`
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/quint4x2.h` - 添加 `using underlying = uint8_t` 和 `alignas(1)`
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/quint2x4.h` - 添加 `using underlying = uint8_t` 和 `alignas(1)`
+- `/home/may/Paddle/paddle/phi/api/include/compat/c10/util/Float4_e2m1fn_x2.h` - 字段名 `x` 改为 `val_`，添加 `operator==/!=`
+- `/home/may/PaddleCppAPITest/doc/mismatch_api_record.md` - 增补本轮汇总
+
+---
+
 ## 2026-04-03 result_cmp 基线复核（PaddleCppAPITest）
 
 ### 本轮复核
