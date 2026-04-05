@@ -61,10 +61,18 @@
 | `getStreamFromPool(const int priority, DeviceIndex device_index = -1)` | ✅ | - [x] | P1 | 已实现，使用 `std::clamp` 映射到最多 4 档优先级，与 PyTorch 一致 |
 | `getStreamFromExternal(cudaStream_t, DeviceIndex)` | ✅ | - [x] | P1 | 已实现，通过 `make_cuda_stream()` 包装外部流 |
 | `getDefaultCUDAStream(DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 已实现，返回默认 null stream（`id == 0`），`c10_Stream_test` 覆盖稳定性与不受 `setCurrentCUDAStream()` 影响 |
-| `getCurrentCUDAStream(DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 已实现，保持 per-thread、per-device current stream 语义；TLS 未设置时回退到 phi 当前流 |
+| `getCurrentCUDAStream(DeviceIndex device_index = -1)` | ✅ | - [x] | P0 | 已实现，保持 per-thread、per-device current stream 语义；TLS 未设置时回退到 default stream |
 | `setCurrentCUDAStream(CUDAStream)` | ✅ | - [x] | P0 | 已实现，仅修改当前线程 TLS 中对应设备的 current stream |
 | `operator<<(std::ostream&, const CUDAStream&)` | ✅ | - [x] | P2 | 已实现，委托到底层 `c10::Stream` 输出 |
 | `std::hash<c10::cuda::CUDAStream>` | ✅ | - [x] | P2 | 已实现，委托 `std::hash<c10::Stream>` |
+
+---
+
+### 内部实现细节（非公开 API）
+
+| torch 内部实现 | paddle 对应实现 | 说明 |
+|---------------|----------------|------|
+| `CUDAStreamForId(DeviceIndex, StreamId)` | `make_cuda_stream(cudaStream_t, DeviceIndex)` | PyTorch 内部辅助函数（位于 `anonymous namespace`），用于从 `stream_id` 构造 `CUDAStream`。Paddle 使用 `make_cuda_stream` 完成相同功能，**无需暴露为公开 API**。 |
 
 ---
 
@@ -112,12 +120,17 @@
    - `getStreamFromPool(int, ...)` 的优先级分档语义需要结合 PyTorch `.cpp` 实现判断，不能只看声明。
 
 3. **主要差异说明**：
-   - `getStreamFromPool(int, ...)` 现已与 PyTorch 对齐，使用 `std::clamp` 将优先级映射到最多 4 档 stream pool。
+   - `getStreamFromPool(int, ...)` 现已与 PyTorch 对齐，使用独立 stream pool 实现（低/高优先级各 32 条），通过 `std::call_once` 懒初始化。
+   - `getCurrentCUDAStream()` 现已与 PyTorch 对齐，使用 thread-local `std::vector<cudaStream_t>` 实现 per-thread current stream 语义，不再直接依赖 phi 层。
    - `priority_range()` 在 CUDA 路径上可视为对齐；若构建为 HIP，PyTorch 会把 `least_priority` 规范化为 `0`，Paddle 当前未做该归一化。
    - PyTorch 在 `USE_ROCM` 下还暴露 `c10::hip` backward-compat alias；Paddle 当前 compat 头文件未覆盖这组入口。
-   - `make_cuda_stream(cudaStream_t, DeviceIndex)`：Paddle 额外提供的辅助包装函数，PyTorch `CUDAStream.h` 无同名公开入口。
+   - `make_cuda_stream(cudaStream_t, DeviceIndex)`：Paddle 提供的辅助包装函数，功能上等价于 PyTorch 内部的 `CUDAStreamForId`，**非公开 API**。
    - `at::cuda` using alias：Paddle 在该头文件尾部直接导出了 `CUDAStream`、`getCurrentCUDAStream`、`getDefaultCUDAStream`、`getStreamFromExternal`、`getStreamFromPool`、`setCurrentCUDAStream`。
 
 5. **测试现状**：
    - `test/c10/cuda/CUDATest2.cpp` 已覆盖 `UNCHECKED`、构造/比较、转换、`query()`、`synchronize()`、`priority()`、`priority_range()`、`pack3()`、`unpack3()`、`getCurrentCUDAStream()`、`getStreamFromPool()`、`getStreamFromExternal()`、`setCurrentCUDAStream()`、`operator<<`、`std::hash`。
    - `/home/may/Paddle/test/cpp/compat/c10_Stream_test.cc` 已覆盖 `getDefaultCUDAStream()` 的 null-stream/stable 语义、`getStreamFromPool(true)` 的 bool 重载分派，以及 `setCurrentCUDAStream()` 不影响 `getDefaultCUDAStream()` 的行为。
+
+6. **内部实现说明**：
+   - PyTorch 的 `CUDAStreamForId` 是 `anonymous namespace` 中的内部辅助函数，用于从 `stream_id` 构造 `CUDAStream`。Paddle 使用 `make_cuda_stream` 完成相同功能，**无需暴露为公开 API**。
+   - PyTorch 使用编译时固定大小的 `std::array`（`C10_COMPILE_TIME_MAX_GPUS`）管理 stream pool；Paddle 使用运行时动态分配的 `std::vector<std::unique_ptr<DevicePools>>`，避免硬编码最大设备数限制。
