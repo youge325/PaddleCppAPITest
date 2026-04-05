@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-04-06 XPU 编译修复与测试分类调整
+
+### 本轮修复（Paddle 内部 ctest 验证）
+
+| 测试项 | 修复前 | 修复后 | PyTorch | 状态 |
+|--------|--------|--------|---------|------|
+| XPU 环境编译 `test/cpp/compat` | 编译错误：CUDA 测试在 XPU 环境被错误编译为 CPU 测试 | 编译成功 | 一致 | ✅ 已对齐 |
+| ATen CUDA 测试分类 | 7 个 CUDA 测试错误标记为 cc_test | 正确标记为 nv_test | 一致 | ✅ 已对齐 |
+
+说明：
+
+- 修复 PR #78580 中的 XPU 相关编译问题。
+- 根本原因：`test/cpp/compat/CMakeLists.txt` 中将需要 CUDA 的测试（`ATen_all_test`、`ATen_as_strided_test`、`ATen_basic_test`、`ATen_from_blob_test`、`ATen_index_test`、`ATen_transpose_test`、`ATen_viewAs_test`）错误地标记为 `cc_test`（CPU 编译），在 XPU 环境（无 CUDA）编译失败。
+- 解决方案：将上述 7 个测试从 `cc_test` 移至 `if(WITH_GPU)` 条件下的 `nv_test`，确保仅在 CUDA 环境下编译。
+- 验证结果：`ninja -j16` 编译成功，`ctest -R c10` 16/16 通过，`ctest -R ATen` 48/48 通过。
+- 此修复与 PyTorch 语义对齐：PyTorch 中这些测试同样依赖 CUDA 环境。
+
+### 本轮修改文件
+
+- `/home/may/Paddle/test/cpp/compat/CMakeLists.txt` - 将 7 个 CUDA 测试从 cc_test 移至 nv_test
+- `/home/may/PaddleCppAPITest/doc/mismatch_api_record.md` - 添加本轮汇总
+
+---
+
 ## 2026-04-05 TensorOptions 命名空间修复与 Mac-CPU 编译兼容
 
 ### 本轮修复（Paddle 内部 ctest 验证）
