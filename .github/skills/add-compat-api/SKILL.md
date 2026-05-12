@@ -41,10 +41,26 @@ TORCH_DIR=~/libtorch
 
 ### Step 2. 参考 PyTorch 实现并新增 Paddle compat 接口
 
-1. 在 `$PYTORCH_ROOT` 中查找目标接口实现（声明 + 实现）
+1. 在 `$PYTORCH_ROOT` 中查找目标接口实现（声明 + 实现）。
+   追踪方法参考 [references/Step2-1.md](references/Step2-1.md) 与
+   [references/Step2-2.md](references/Step2-2.md)。
 2. 在 `$PADDLE_ROOT/paddle/phi/api/include/compat` 中新增接口
 3. 在 `$PADDLE_ROOT/test/cpp/compat` 中新增对应测试
-4. 保持与 PyTorch 行为一致：
+4. **同时**在 `$PCAT_ROOT/test/` 下新增/扩展跨框架对比测试。
+   测试规范见 [compatibility-testing](../compatibility-testing/SKILL.md)
+   （命名空间 `at::test`、`<OpName>Test` 类、`write_<op>_result_to_file`、
+   Shape 四档与 Dtype 四基础类型覆盖、异常用 `std::exception` 不取 `e.what()`、
+   空格分隔单行输出格式、新算子 checklist），本文档不复述。
+
+   调用该 skill 时传入：
+
+   - `PCAT_ROOT=$PCAT_ROOT`
+   - 算子名：本轮要新增的接口（如 `at::abs`、`at::abs_`）
+   - 覆盖目标：Shape 标量/小/大/边界，Dtype kFloat/kDouble/kInt/kLong
+   - 输出路径：`$PCAT_ROOT/test/<分类>/<OpName>Test.cpp`
+
+   返回后照其骨架写入测试文件，并对照其 checklist 自检强制项（标 `*` 项）。
+5. 保持与 PyTorch 行为一致：
    - 参数语义
    - 返回类型与 dtype/shape
    - 异常触发时机
@@ -109,7 +125,7 @@ bash test/result_cmp.sh ./build/
 - `$PADDLE_ROOT/build` 下 `ninja -j"$(nproc)"` 成功
 - `$PADDLE_ROOT/build` 下 `ctest -R "ATen|c10|torch"` 通过
 - `$PCAT_ROOT` 下 `bash test/result_cmp.sh ./build/` 中新增接口相关用例通过
-- 文档已更新：新增接口迭代记录（以及相关专题文档）
+- 文档已通过 [compat-doc-authoring](../compat-doc-authoring/SKILL.md) 归档，且其 Step 5 校验全部通过
 
 ## 文档收尾要求
 
@@ -144,6 +160,30 @@ bash test/result_cmp.sh ./build/
 - 未完成接口：
 - 下一轮优先级：
 ```
+
+## 文档归档（调用 compat-doc-authoring）
+
+按上节"对齐迭代记录"模板填好五段后，**不要**直接写入 `$PCAT_ROOT/doc/`。
+本 skill 不维护"✅🔧❌ 状态符号 / 优先级 P0–P3 / 测试用例 checkbox /
+兼容性统计表 / 关键差异说明"这些格式规范，统一交给
+[compat-doc-authoring](../compat-doc-authoring/SKILL.md) 完成入库与校验。
+
+调用该 skill 时传入：
+
+- `PCAT_ROOT=$PCAT_ROOT`
+- 调用模式：`append-to-existing`（追加到已有专题文档）
+- 目标文档：`$PCAT_ROOT/doc/<topic>.md`
+- 上游模板名：`对齐迭代记录`
+- 已填段落：粘贴上节"对齐迭代记录（YYYY-MM-DD）"五段完整填好的 Markdown
+
+下游必须完成的额外工作（本 skill 不重复约束）：
+
+- 把本轮新增接口加入文档 API 对比表，状态符号选 `✅` 或 `🔧`
+- 回填 `## 兼容性统计` 表的三行数字
+- 对每个标 `🔧` 的条目，在"关键差异说明"中补一小节
+- 发布前按 compat-doc-authoring 的 Step 5 校验 checklist 全项过审
+
+只有下游确认"格式合规"后，本轮才算完成。
 
 ## 推荐执行节奏
 

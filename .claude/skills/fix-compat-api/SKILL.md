@@ -63,6 +63,17 @@ TORCH_DIR=~/libtorch
 - 明确提示支持的 URL 格式
 - 请求用户重新提供可解析链接
 
+### 横向退出条件：根因为接口完全缺失
+
+若 Step 1 解析后发现链接所指根因是 **"Paddle 侧完全没有该接口"**
+（而非行为不一致），本 skill 不直接走 Step 2–5。
+请退出当前 fix 循环，改用 [add-compat-api](../add-compat-api/SKILL.md) skill
+启动新增循环。`add-compat-api` 完成后，回到本 skill 重新输入原链接，
+验证问题是否消失。
+
+> 本引用为**说明性引用**，不会自动触发 `add-compat-api`——避免一次输入
+> 同时启动两条驱动型循环造成递归。请用户/Claude 明确在两个 skill 间切换。
+
 ## 修复流程（循环执行）
 
 ### Step 1. 解析需求并定义本轮目标
@@ -84,7 +95,21 @@ TORCH_DIR=~/libtorch
 
 1. 修改 compat 接口实现：`$PADDLE_ROOT/paddle/phi/api/include/compat`
 2. 新增或补充测试：`$PADDLE_ROOT/test/cpp/compat`
-3. 如有需要，补充 `$PCAT_ROOT/test` 下对应兼容回归用例
+3. **若本轮修复涉及 `$PCAT_ROOT/test` 下用例**（链接指向 `result_cmp` diff、
+   或修复改变了输出格式 / dtype / 异常路径），按统一规范扩写或新增。
+   测试规范见 [compatibility-testing](../compatibility-testing/SKILL.md)，
+   本文档不复述。
+
+   调用该 skill 时传入：
+
+   - `PCAT_ROOT=$PCAT_ROOT`
+   - 算子名：链接指向的接口
+   - 修复点：`dtype 推导` / `异常路径` / `shape 边界` / `API 变体` 等
+   - 已有测试路径：`$PCAT_ROOT/test/<分类>/<OpName>Test.cpp`
+
+   返回后只针对修复点新增最小化用例，不重排无关测试。
+4. 必要时补充 `$PCAT_ROOT/test` 下其余兼容回归用例
+   （按上一调用返回的 checklist 自检强制项）。
 
 ### Step 4. 编译与测试验证
 
@@ -121,6 +146,7 @@ bash test/result_cmp.sh ./build/
 - `ctest -R "ATen|c10|torch"` 全部通过
 - `$PCAT_ROOT` 下 `bash test/result_cmp.sh ./build/` 中相关用例通过
 - 未引入 PyTorch 与 Paddle 上游都不存在的实现
+- 文档已通过 [compat-doc-authoring](../compat-doc-authoring/SKILL.md) 归档，且其 Step 5 校验全部通过
 
 ## 文档收尾模板
 
@@ -153,6 +179,26 @@ bash test/result_cmp.sh ./build/
 - 已知风险：
 - 后续待办：
 ```
+
+## 文档归档（调用 compat-doc-authoring）
+
+按上节"Compat 修复记录"模板填好五段后，调用
+[compat-doc-authoring](../compat-doc-authoring/SKILL.md) 完成入库与格式校验。
+
+调用该 skill 时传入：
+
+- `PCAT_ROOT=$PCAT_ROOT`
+- 调用模式：`append-to-existing`
+- 目标文档：`$PCAT_ROOT/doc/<topic>.md`
+- 上游模板名：`Compat 修复记录`
+- 已填段落：粘贴上节"Compat 修复记录（YYYY-MM-DD）"五段完整填好的 Markdown
+
+下游会做的事：
+
+- 若本次修复改变了 API 对比表中某行的状态（`🔧` ↔ `✅`），由下游负责改表
+- 回填 `## 兼容性统计` 数字
+- 检查链接编号、PR 编号是否在"备注"列被回填
+- 按 Step 5 校验 checklist 全项过审
 
 ## 常见错误
 

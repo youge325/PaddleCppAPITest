@@ -8,6 +8,21 @@ argument-hint: '要测试的算子名称或 API，例如 abs、sum、reshape'
 
 PaddlePaddle 与 PyTorch C++ API 兼容性测试开发规范。
 
+## 上游调用上下文
+
+本 skill 可被独立调用（用户直接传入算子名按完整工作流走），也可被上游驱动型
+skill 在写测试步骤调用：
+
+| 上游 skill | 调用时机 | 期望传入字段 | 期望返回 |
+|------------|---------|-------------|---------|
+| [add-compat-api](../add-compat-api/SKILL.md) | Step 2 第 4 子项（新增 PCAT 测试） | `PCAT_ROOT` / 算子名 / 覆盖目标 / 输出路径 | 测试文件骨架 + 强制项 checklist 自检结论 |
+| [fix-compat-api](../fix-compat-api/SKILL.md) | Step 3 第 3 子项（最小修复涉及 PCAT 测试） | `PCAT_ROOT` / 算子名 / 修复点 / 已有测试路径 | 针对修复点的最小化用例片段 + 与已有用例的合并建议 |
+
+被上游调用时，本 skill **不反向调用任何上游 skill，也不触发其他 skill**，
+只产出测试代码与 checklist 结论，控制权立即交还上游。
+被上游调用时，"作为参考"的样例不必完整重写，只针对传入的"覆盖目标"或
+"修复点"给出增量代码，避免与已有测试重复。
+
 ## 触发条件
 
 适用场景：
