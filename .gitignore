@@ -50,3 +50,4 @@ Thumbs.db
 .codex
 .codex_tmp
 coverage/html_report/
+.claude/settings.local.json

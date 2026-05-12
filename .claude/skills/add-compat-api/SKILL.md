@@ -39,7 +39,7 @@ TORCH_DIR=~/libtorch
 2. 在 `$PCAT_ROOT/test/` 中定位或补充对应测试（例如 Device 相关）
 3. 明确接口行为基线：参数、返回、异常语义
 
-### Step 3. 参考 PyTorch 实现并新增 Paddle compat 接口
+### Step 2. 参考 PyTorch 实现并新增 Paddle compat 接口
 
 1. 在 `$PYTORCH_ROOT` 中查找目标接口实现（声明 + 实现）
 2. 在 `$PADDLE_ROOT/paddle/phi/api/include/compat` 中新增接口
@@ -49,7 +49,7 @@ TORCH_DIR=~/libtorch
    - 返回类型与 dtype/shape
    - 异常触发时机
 
-### Step 4. 编译 Paddle 并跑兼容测试
+### Step 3. 编译 Paddle 并跑兼容测试
 
 ```bash
 cd "$PADDLE_ROOT/build"
@@ -59,13 +59,13 @@ ctest -R "ATen|c10|torch"
 
 若此步失败，先修复 Paddle 侧编译或测试问题，再继续。
 
-### Step 5. 安装新 wheel
+### Step 4. 安装新 wheel
 
 ```bash
 pip install "$PADDLE_ROOT"/build/python/dist/*.whl --force-reinstall --no-deps
 ```
 
-### Step 6. 回到 PaddleCppAPITest 复编并复测
+### Step 5. 回到 PaddleCppAPITest 复编并复测
 
 ```bash
 cd "$PCAT_ROOT/build"
@@ -75,9 +75,9 @@ cd "$PCAT_ROOT"
 bash test/result_cmp.sh ./build/
 ```
 
-### Step 7. 判定是否继续循环
+### Step 6. 判定是否继续循环
 
-- 若新增接口相关用例仍有 `FAILED/SKIPPED/DIFF`：回到 Step 3，进入下一轮
+- 若新增接口相关用例仍有 `FAILED/SKIPPED/DIFF`：回到 Step 2，进入下一轮
 - 若新增接口相关用例通过：进入收尾步骤
 
 ## 分支决策
@@ -85,7 +85,7 @@ bash test/result_cmp.sh ./build/
 ### 分支 A：PaddleCppAPITest 编译失败（接口缺失）
 
 - 优先补齐 compat 声明与最小实现
-- 回到 Step 3 完善接口与测试后，再执行 Step 4-6 验证
+- 回到 Step 2 完善接口与测试后，再执行 Step 3-5 验证
 
 ### 分支 B：Paddle 编译通过但 `ctest` 失败
 
