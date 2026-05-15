@@ -1,0 +1,24 @@
+## [paddle 参数更多]at::cumsum
+
+### PyTorch C++ API
+```cpp
+at::cumsum(self, dim, dtype=::std::nullopt)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::cumsum(x, axis=-1, flatten=false, exclusive=false, reverse=false)
+```
+
+两者功能一致，Paddle 相比 PyTorch 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| self | x | 仅参数名不一致，`self` 对应 `x`。 |
+| dim | axis | 仅参数名不一致，`dim` 对应 `axis`。 |
+| dtype | - | Paddle 无此参数，PyTorch 有 `dtype`。 |
+| - | flatten | PyTorch 无此参数，Paddle 有 `flatten`。 |
+| - | exclusive | PyTorch 无此参数，Paddle 有 `exclusive`。 |
+| - | reverse | PyTorch 无此参数，Paddle 有 `reverse`。 |

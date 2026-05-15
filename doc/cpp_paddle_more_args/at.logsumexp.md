@@ -1,0 +1,22 @@
+## [paddle 参数更多]at::logsumexp
+
+### PyTorch C++ API
+```cpp
+at::logsumexp(self, dim, keepdim=false)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::logsumexp(x, axis={}, keepdim=false, reduce_all=false)
+```
+
+两者功能一致，Paddle 相比 PyTorch 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| self | x | 仅参数名不一致，`self` 对应 `x`。 |
+| dim | axis | 仅参数名不一致，`dim` 对应 `axis`。 |
+| keepdim | keepdim | 参数名一致。 |
+| - | reduce_all | PyTorch 无此参数，Paddle 有 `reduce_all`。 |

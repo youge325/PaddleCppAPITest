@@ -1,0 +1,21 @@
+## [paddle 参数更多]at::max
+
+### PyTorch C++ API
+```cpp
+at::max(self)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::max(x, axis={}, keepdim=false)
+```
+
+两者功能一致，Paddle 相比 PyTorch 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| self | x | 仅参数名不一致，`self` 对应 `x`。 |
+| - | axis | PyTorch 无此参数，Paddle 有 `axis`。 |
+| - | keepdim | PyTorch 无此参数，Paddle 有 `keepdim`。 |

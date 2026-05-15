@@ -1,0 +1,24 @@
+## [torch 参数更多]at::huber_loss
+
+### PyTorch C++ API
+```cpp
+at::huber_loss(self, target, reduction=at::Reduction::Mean, delta=1.0)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::huber_loss(input, label, delta)
+```
+
+PyTorch 相比 Paddle 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| self | - | Paddle 无此参数，PyTorch 有 `self`。 |
+| target | - | Paddle 无此参数，PyTorch 有 `target`。 |
+| reduction | - | Paddle 无此参数，PyTorch 有 `reduction`。 |
+| delta | delta | 参数名一致。 |
+| - | input | PyTorch 无此参数，Paddle 有 `input`。 |
+| - | label | PyTorch 无此参数，Paddle 有 `label`。 |

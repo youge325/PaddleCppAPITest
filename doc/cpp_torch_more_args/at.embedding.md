@@ -1,0 +1,24 @@
+## [torch 参数更多]at::embedding
+
+### PyTorch C++ API
+```cpp
+at::embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=false, sparse=false)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::embedding(x, weight, padding_idx=-1, sparse=false)
+```
+
+PyTorch 相比 Paddle 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| weight | weight | 参数名一致。 |
+| indices | - | Paddle 无此参数，PyTorch 有 `indices`。 |
+| padding_idx | padding_idx | 参数名一致。 |
+| scale_grad_by_freq | - | Paddle 无此参数，PyTorch 有 `scale_grad_by_freq`。 |
+| sparse | sparse | 参数名一致。 |
+| - | x | PyTorch 无此参数，Paddle 有 `x`。 |

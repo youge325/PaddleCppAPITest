@@ -1,0 +1,20 @@
+## [torch 参数更多]at::poisson
+
+### PyTorch C++ API
+```cpp
+at::poisson(self, generator=::std::nullopt)
+```
+
+### Paddle C++ API
+```cpp
+paddle::experimental::poisson(x)
+```
+
+PyTorch 相比 Paddle 支持更多参数，具体如下：
+
+### 参数映射
+
+| PyTorch C++ | Paddle C++ | 备注 |
+| ----------- | ---------- | ---- |
+| self | x | 仅参数名不一致，`self` 对应 `x`。 |
+| generator | - | Paddle 无此参数，PyTorch 有 `generator`。 |
