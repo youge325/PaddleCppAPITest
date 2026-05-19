@@ -27,7 +27,7 @@ const at::Tensor& as_strided_(at::IntArrayRef size,
 ### 1.2 涉及的关键概念
 
 | 概念 | 说明 |
-|------|------|
+| --- | --- |
 | **View 语义** | `as_strided` 创建的是原张量的视图，共享同一底层 storage |
 | **Storage offset** | 指定 view 在 storage 中的起始偏移（元素个数） |
 | **Strides** | 定义沿各维度移动时的步长 |
@@ -90,11 +90,9 @@ inline at::Tensor Tensor::as_strided(
    - 这是最关键的一步，确保 `DenseTensor::holder_` 是 `StorageHolderView`
    - 如果 holder 是普通 `phi::Allocation`，会创建新的 `StorageImpl` 和 `StorageHolderView`
    - 保证后续所有 view 都共享同一个 `StorageImpl`
-
 2. **`ShareDataWith(*src_tensor)`** - 共享底层数据
    - 复制 `src_tensor` 的 holder 指针
    - 由于上一步已经确保 holder 是 `StorageHolderView`，所以 view 和 base 共享同一个 `StorageImpl`
-
 3. **设置新的 meta** - 修改 shape/stride/offset
    - 创建新的 `DenseTensorMeta` 指定新的 shape 和 strides
    - 计算字节 offset 并设置到 meta 中
@@ -137,6 +135,7 @@ inline const at::Tensor& Tensor::as_strided_(
 ```
 
 **与 non-inplace 版本的区别**：
+
 - 直接修改当前 tensor 的 meta，不创建新 tensor
 - 使用 `set_meta` 避免触发 contiguous 检查
 
@@ -203,7 +202,52 @@ flowchart TD
     SI --> ALLO
 ```
 
-### 3.2 为什么需要 `(void)this->storage()`？
+### 3.2 调用时序图
+
+下图与 §3.1 架构图互为静/动两个视角,展示 `as_strided` 内部的动态调用路径,与 §2.1 源码解析中的三步分解一一对应。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant Base as Base Tensor
+    participant SrcDT as Src DenseTensor
+    participant SHV as StorageHolderView
+    participant SI as StorageImpl
+    participant NewDT as New DenseTensor
+    participant View as View Tensor
+
+    User->>Base: as_strided(size, stride, offset)
+    Note over Base: 步骤 1: materialize compat storage
+    Base->>Base: (void)this->storage()
+    Base->>SrcDT: SyncStorageFromTensor()
+    alt holder 不是 StorageHolderView
+        SrcDT->>SI: 创建新 StorageImpl
+        SrcDT->>SHV: 创建 StorageHolderView
+        SrcDT->>SrcDT: ResetHolder(SHV)
+    else holder 已是 StorageHolderView
+        SrcDT->>SHV: 复用现有 holder
+        SHV-->>SI: 引用现有 StorageImpl
+    end
+    Note over Base: 步骤 2: 创建新 DenseTensor 并共享 holder
+    Base->>SrcDT: dynamic_pointer_cast<DenseTensor>
+    Base->>NewDT: std::make_shared<DenseTensor>()
+    Base->>NewDT: ShareDataWith(*src_tensor)
+    NewDT-->>SHV: holder_ 指向同一个 StorageHolderView
+    Note over Base: 步骤 3: 计算并设置新 meta
+    Base->>Base: 构造 DenseTensorMeta(size, stride)
+    Base->>Base: meta.offset = src.offset + offset * SizeOf(dtype)
+    Base->>NewDT: set_meta(meta)
+    Base->>View: 构造 PaddleTensor + at::Tensor
+    View-->>User: 返回 view tensor (共享 StorageImpl)
+```
+
+**关键观察**:
+
+- **步骤 1** 是后续 storage 共享的前提条件。如果不调用 `(void)this->storage()`,当 `DenseTensor::holder_` 是普通 `phi::Allocation` 时,后续 `ShareDataWith` 复制出来的 view 也只是普通 holder,view 与 base 不会共享 `StorageImpl`。
+- **步骤 2** 中 `ShareDataWith` 复制的是 `holder_` 指针(经步骤 1 后已是 `StorageHolderView`),由于 `StorageHolderView` 内部持有 `shared_ptr<StorageImpl>`,view 与 base 自动共享同一个 `StorageImpl`。
+- **步骤 3** 仅修改 view 自身的 meta(`shape` / `stride` / `offset`),不触及共享的 `StorageImpl`,因此对 base 的 meta 无影响。
+
+### 3.3 为什么需要 `(void)this->storage()`？
 
 ```cpp
 // 没有这行代码时可能出现的问题：
@@ -258,6 +302,7 @@ TEST_F(TensorAsStridedTest, AsStridedBasic) {
 ```
 
 **说明**：
+
 - `arange(12)` 创建 `[0, 1, 2, ..., 11]` 的一维张量
 - `as_strided({2, 3}, {3, 1})` 将其视为 2x3 矩阵
 - 访问 `result[i][j]` 实际访问 `t[i*3 + j]`
@@ -376,13 +421,9 @@ std::cout << "Storage use_count: " << base_storage.use_count() << std::endl;
 ## 6. 注意事项
 
 1. **必须先调用 `storage()`**：在 `as_strided` 开头调用 `(void)this->storage()` 是必须的，它确保后续 `ShareDataWith` 能正确共享 `StorageImpl`。
-
 2. **View 和 Base 的生命周期**：View 不拥有底层数据，如果 base tensor 被释放，view 访问数据将是未定义行为。
-
 3. **Offset 计算**：`storage_offset` 参数以元素个数为单位，内部会乘以元素大小转换为字节偏移。
-
 4. **Resize 行为**：对 view 执行 `resize_` 会影响共享的 storage。如果 view 有非零 offset，resize 后的数据指针会从 storage 起始位置 + offset 开始。
-
 5. **非连续张量**：`as_strided` 可以创建非连续（non-contiguous）张量，这在某些操作（如转置）中很常见。
 
 ---
@@ -390,7 +431,7 @@ std::cout << "Storage use_count: " << base_storage.use_count() << std::endl;
 ## 7. 参考代码路径
 
 | 文件 | 说明 |
-|------|------|
+| --- | --- |
 | `/home/may/Paddle/paddle/phi/api/include/compat/ATen/ops/as_strided.h` | as_strided/as_strided_/as_strided_scatter 实现 |
 | `/home/may/Paddle/test/cpp/compat/ATen_as_strided_test.cc` | as_strided 功能测试 |
 | `/home/may/Paddle/test/cpp/compat/c10_storage_test.cc` | Storage 共享相关测试 |

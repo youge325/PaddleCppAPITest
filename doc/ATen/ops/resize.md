@@ -194,7 +194,53 @@ flowchart TD
     H2 --> D2
 ```
 
-### 3.2 为什么使用 `storage.set_data_ptr_noswap()`？
+### 3.2 resize_ 执行顺序图
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant T as Tensor
+    participant DT as DenseTensor
+    participant S as Storage
+    participant SI as StorageImpl
+    participant SH as StorageHolderView
+    participant Mem as paddle::memory
+
+    User->>T: tensor.resize_(size, memory_format)
+    T->>T: ResizeCheckedNumel(size)
+    T->>T: ResizeCheckedStorageBytes(numel, itemsize, offset)
+    T->>DT: dynamic_pointer_cast<DenseTensor>(tensor_.impl())
+    DT-->>T: dense_tensor
+    T->>DT: dense_tensor->Holder()
+    DT-->>T: old_holder (size = current_storage_bytes)
+
+    alt new_storage_bytes <= current_storage_bytes 或 new_numel == 0
+        T->>DT: dense_tensor->Resize(dims)
+        DT-->>T: ok
+    else 需要增长 storage
+        T->>T: this->storage()
+        Note over T,SH: SyncStorageFromTensor 确保 holder 是 StorageHolderView
+        T->>S: 获取 storage 句柄
+        S->>SI: 共享 shared_ptr<StorageImpl>
+        T->>DT: dense_tensor->Holder()
+        DT-->>T: old_holder (现在已是 StorageHolderView)
+        T->>Mem: AllocShared(place, new_storage_bytes)
+        Mem-->>T: new_holder (phi::Allocation)
+        T->>Mem: memory_utils::Copy(place, new_ptr, place, old_ptr, copy_bytes)
+        T->>S: storage.set_data_ptr_noswap(new_holder)
+        S->>SI: 更新 data_allocation_ = new_holder
+        Note over SI,SH: 所有共享 StorageImpl 的 view 立即看到新数据
+        T->>DT: dense_tensor->Resize(make_ddim(dims))
+    end
+    T-->>User: 返回 const at::Tensor&
+```
+
+**与 [`storage_compat_arch.md` 3.2 节](../../c10/core/storage_compat_arch.md#32-流程图解) 顺序图的关系**：
+
+- 当 `resize_` 走到 "需要增长 storage" 分支时，`this->storage()` 调用会触发 `storage_compat_arch.md` 顺序图描述的 `SyncStorageFromTensor` 流程，从而保证 `dense_tensor->Holder()` 返回的是 `StorageHolderView` 而非裸 `phi::Allocation`。
+- `set_data_ptr_noswap` 只改写 `StorageImpl::data_allocation_`，不替换 `StorageImpl` 本身，因此 canonical registry 中缓存的 `Storage` 句柄继续有效，所有共享同一 `StorageImpl` 的 view 自动看到新数据。
+
+### 3.3 为什么使用 `storage.set_data_ptr_noswap()`？
 
 ```cpp
 // 关键代码行
@@ -206,7 +252,7 @@ storage.set_data_ptr_noswap(std::move(new_holder));
 2. **保持 StorageImpl** - 不创建新的 `StorageImpl`，只是替换内部的 `data_allocation_`
 3. **view 一致性** - 如果 tensor 有 view（如 `as_strided` 创建的），view 会跟随 base tensor 的新 storage
 
-### 3.3 View 的 resize_ 行为
+### 3.4 View 的 resize_ 行为
 
 当 view（如 `as_strided` 创建的）执行 `resize_` 时：
 

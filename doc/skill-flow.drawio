@@ -1,0 +1,366 @@
+<mxfile host="Electron">
+  <diagram id="skill-flow" name="Skill 互相调用流程图">
+    <mxGraphModel dx="1264" dy="3211" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2339" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="U1" parent="1" style="ellipse;fillColor=#ffe9b3;strokeColor=#cc8800;strokeWidth=2" value="用户输入&#xa;新增 API 需求" vertex="1">
+          <mxGeometry height="60" width="180" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="U2" parent="1" style="ellipse;fillColor=#ffe9b3;strokeColor=#cc8800;strokeWidth=2" value="用户输入&#xa;PR / Actions / review 链接" vertex="1">
+          <mxGeometry height="60" width="220" x="440" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="U3" parent="1" style="ellipse;fillColor=#ffe9b3;strokeColor=#cc8800;strokeWidth=2" value="用户输入&#xa;算子名（独立调用）" vertex="1">
+          <mxGeometry height="60" width="180" x="880" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="U4" parent="1" style="ellipse;fillColor=#ffe9b3;strokeColor=#cc8800;strokeWidth=2" value="用户输入&#xa;头文件名（独立调用）" vertex="1">
+          <mxGeometry height="60" width="200" x="1280" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="add" parent="1" style="swimlane;fillColor=#e3f2fd;strokeColor=#1565c0;startSize=30" value="add-compat-api（驱动型）" vertex="1">
+          <mxGeometry height="700" width="380" x="20" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="A1" parent="add" style="rounded=1;fillColor=#fff" value="Step 1&#xa;确定本轮新增接口范围" vertex="1">
+          <mxGeometry height="50" width="180" x="100" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="A2" parent="add" style="rounded=1;fillColor=#fff" value="Step 2&#xa;参考 PyTorch + 新增 compat" vertex="1">
+          <mxGeometry height="50" width="180" x="100" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="A2_4" parent="add" style="shape=hexagon;fillColor=#d4edda;strokeColor=#155724" value="Step 2 第 4 子项&#xa;调用 compatibility-testing" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="A3" parent="add" style="rounded=1;fillColor=#fff" value="Step 3 编译 + ctest" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="A4" parent="add" style="rounded=1;fillColor=#fff" value="Step 4 安装 wheel" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="A5" parent="add" style="rounded=1;fillColor=#fff" value="Step 5 复编 PCAT + result_cmp" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="A6" parent="add" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="Step 6&#xa;新增用例通过?" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="A_DOC" parent="add" style="shape=hexagon;fillColor=#d4edda;strokeColor=#155724" value="文档归档&#xa;调用 compat-doc-authoring" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="A_DONE" parent="add" style="ellipse;fillColor=#d1e7dd;strokeColor=#0f5132" value="完成" vertex="1">
+          <mxGeometry height="40" width="100" x="140" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A1_A2" edge="1" parent="add" source="A1" style="endArrow=classic" target="A2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A2_A24" edge="1" parent="add" source="A2" style="endArrow=classic" target="A2_4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A24_A3" edge="1" parent="add" source="A2_4" style="endArrow=classic" target="A3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A3_A4" edge="1" parent="add" source="A3" style="endArrow=classic" target="A4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A4_A5" edge="1" parent="add" source="A4" style="endArrow=classic" target="A5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A5_A6" edge="1" parent="add" source="A5" style="endArrow=classic" target="A6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A6_A2" edge="1" parent="add" source="A6" style="endArrow=classic;dashed=1" target="A2" value="否">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="480" />
+              <mxPoint x="40" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_A6_ADOC" edge="1" parent="add" source="A6" style="endArrow=classic" target="A_DOC" value="是">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ADOC_ADONE" edge="1" parent="add" source="A_DOC" style="endArrow=classic" target="A_DONE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fix" parent="1" style="swimlane;fillColor=#e3f2fd;strokeColor=#1565c0;startSize=30" value="fix-compat-api（驱动型）" vertex="1">
+          <mxGeometry height="780" width="380" x="420" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="F0" parent="fix" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="链接分流&#xa;PR / Actions / review?" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F1" parent="fix" style="rounded=1;fillColor=#fff" value="Step 1 解析需求并定义目标" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="F_EXIT" parent="fix" style="shape=hexagon;fillColor=#f8d7da;strokeColor=#842029" value="横向退出&#xa;根因为接口完全缺失" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="F2" parent="fix" style="rounded=1;fillColor=#fff" value="Step 2 对照 PyTorch 实现" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="F3" parent="fix" style="rounded=1;fillColor=#fff" value="Step 3 在 Paddle 侧最小修复" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="F3_3" parent="fix" style="shape=hexagon;fillColor=#d4edda;strokeColor=#155724" value="Step 3 第 3 子项&#xa;调用 compatibility-testing" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="F4" parent="fix" style="rounded=1;fillColor=#fff" value="Step 4 编译 + ctest" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="F5" parent="fix" style="rounded=1;fillColor=#fff" value="Step 5 wheel + result_cmp" vertex="1">
+          <mxGeometry height="40" width="180" x="100" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="F6" parent="fix" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="Step 6&#xa;问题是否消失?" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="F_DOC" parent="fix" style="shape=hexagon;fillColor=#d4edda;strokeColor=#155724" value="文档归档&#xa;调用 compat-doc-authoring" vertex="1">
+          <mxGeometry height="60" width="180" x="100" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="F_DONE" parent="fix" style="ellipse;fillColor=#d1e7dd;strokeColor=#0f5132" value="完成" vertex="1">
+          <mxGeometry height="40" width="100" x="140" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F0_F1" edge="1" parent="fix" source="F0" style="endArrow=classic" target="F1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F1_FEXIT" edge="1" parent="fix" source="F1" style="endArrow=classic" target="F_EXIT">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F1_F2" edge="1" parent="fix" source="F1" style="endArrow=classic;rounded=1" target="F2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="170" />
+              <mxPoint x="320" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_F2_F3" edge="1" parent="fix" source="F2" style="endArrow=classic" target="F3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F3_F33" edge="1" parent="fix" source="F3" style="endArrow=classic" target="F3_3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F33_F4" edge="1" parent="fix" source="F3_3" style="endArrow=classic" target="F4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F4_F5" edge="1" parent="fix" source="F4" style="endArrow=classic" target="F5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F5_F6" edge="1" parent="fix" source="F5" style="endArrow=classic" target="F6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_F6_F2" edge="1" parent="fix" source="F6" style="endArrow=classic;dashed=1" target="F2" value="否">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="620" />
+              <mxPoint x="40" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_F6_FDOC" edge="1" parent="fix" source="F6" style="endArrow=classic" target="F_DOC" value="是">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_FDOC_FDONE" edge="1" parent="fix" source="F_DOC" style="endArrow=classic" target="F_DONE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="test" parent="1" style="swimlane;fillColor=#f3e5f5;strokeColor=#6a1b9a;startSize=30" value="compatibility-testing（规范型）" vertex="1">
+          <mxGeometry height="500" width="380" x="840" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="T_IN" parent="test" style="shape=parallelogram;fillColor=#cfe2ff;strokeColor=#084298" value="输入：算子名 / 覆盖目标&#xa;输出路径 / PCAT_ROOT" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="T1" parent="test" style="rounded=1;fillColor=#fff" value="读约定&#xa;Shape 四档 + Dtype 四基础类型" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="T2" parent="test" style="rounded=1;fillColor=#fff" value="按 OpName 生成测试骨架&#xa;write_op_result_to_file" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="T3" parent="test" style="rounded=1;fillColor=#fff" value="覆盖&#xa;Shape/Dtype/值域/API/异常" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="T_CHK" parent="test" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="新算子 checklist&#xa;强制项全过?" vertex="1">
+          <mxGeometry height="60" width="220" x="80" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="T_OUT" parent="test" style="shape=parallelogram;fillColor=#cfe2ff;strokeColor=#084298" value="输出：测试文件骨架&#xa;+ checklist 自检结论" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="e_TIN_T1" edge="1" parent="test" source="T_IN" style="endArrow=classic" target="T1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_T1_T2" edge="1" parent="test" source="T1" style="endArrow=classic" target="T2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_T2_T3" edge="1" parent="test" source="T2" style="endArrow=classic" target="T3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_T3_TCHK" edge="1" parent="test" source="T3" style="endArrow=classic" target="T_CHK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_TCHK_T3" edge="1" parent="test" source="T_CHK" style="endArrow=classic;dashed=1" target="T3" value="否">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="360" />
+              <mxPoint x="40" y="285" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_TCHK_TOUT" edge="1" parent="test" source="T_CHK" style="endArrow=classic" target="T_OUT" value="是">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="doc" parent="1" style="swimlane;fillColor=#f3e5f5;strokeColor=#6a1b9a;startSize=30" value="compat-doc-authoring（规范型）" vertex="1">
+          <mxGeometry height="640" width="380" x="1240" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="D_IN" parent="doc" style="shape=parallelogram;fillColor=#cfe2ff;strokeColor=#084298" value="输入：调用模式 / 目标文档&#xa;上游模板名 / 已填段落" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="D_MODE" parent="doc" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="调用模式?" vertex="1">
+          <mxGeometry height="60" width="220" x="80" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="D_STD" parent="doc" style="rounded=1;fillColor=#fff" value="独立调用&#xa;按标准模板新建" vertex="1">
+          <mxGeometry height="50" width="160" x="20" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="D_APPEND" parent="doc" style="rounded=1;fillColor=#fff" value="append-to-existing&#xa;原样追加 + 改表" vertex="1">
+          <mxGeometry height="50" width="160" x="200" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="D1" parent="doc" style="rounded=1;fillColor=#fff" value="Step 1 读代码列 API 清单" vertex="1">
+          <mxGeometry height="40" width="220" x="80" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="D2" parent="doc" style="rounded=1;fillColor=#fff" value="Step 2 分组 + 标 ✅🔧❌" vertex="1">
+          <mxGeometry height="40" width="220" x="80" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="D3" parent="doc" style="rounded=1;fillColor=#fff" value="Step 3 写入文档" vertex="1">
+          <mxGeometry height="40" width="220" x="80" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="D4" parent="doc" style="rounded=1;fillColor=#fff" value="Step 4 兼容性统计回填" vertex="1">
+          <mxGeometry height="40" width="220" x="80" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="D5" parent="doc" style="rhombus;fillColor=#fff3cd;strokeColor=#856404" value="Step 5 校验&#xa;9 项 checklist 全过?" vertex="1">
+          <mxGeometry height="60" width="220" x="80" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="D_OUT" parent="doc" style="shape=parallelogram;fillColor=#cfe2ff;strokeColor=#084298" value="输出：归档结论&#xa;✅n / 🔧n / ❌n" vertex="1">
+          <mxGeometry height="50" width="220" x="80" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="e_DIN_DMODE" edge="1" parent="doc" source="D_IN" style="endArrow=classic" target="D_MODE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_DMODE_DSTD" edge="1" parent="doc" source="D_MODE" style="endArrow=classic" target="D_STD" value="独立">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_DMODE_DAPP" edge="1" parent="doc" source="D_MODE" style="endArrow=classic" target="D_APPEND" value="append">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_DSTD_D1" edge="1" parent="doc" source="D_STD" style="endArrow=classic" target="D1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_DAPP_D4" edge="1" parent="doc" source="D_APPEND" style="endArrow=classic" target="D4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_D1_D2" edge="1" parent="doc" source="D1" style="endArrow=classic" target="D2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_D2_D3" edge="1" parent="doc" source="D2" style="endArrow=classic" target="D3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_D3_D4" edge="1" parent="doc" source="D3" style="endArrow=classic" target="D4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_D4_D5" edge="1" parent="doc" source="D4" style="endArrow=classic" target="D5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_D5_D3" edge="1" parent="doc" source="D5" style="endArrow=classic;dashed=1" target="D3" value="否">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="540" />
+              <mxPoint x="40" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_D5_DOUT" edge="1" parent="doc" source="D5" style="endArrow=classic" target="D_OUT" value="是">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_U1_A1" edge="1" parent="1" source="U1" style="endArrow=classic;strokeWidth=3" target="A1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_U2_F0" edge="1" parent="1" source="U2" style="endArrow=classic;strokeWidth=3" target="F0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_U3_TIN" edge="1" parent="1" source="U3" style="endArrow=classic;strokeWidth=3" target="T_IN">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_U4_DIN" edge="1" parent="1" source="U4" style="endArrow=classic;strokeWidth=3" target="D_IN">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_A24_TIN" edge="1" parent="1" source="A2_4" style="endArrow=classic;strokeWidth=3;strokeColor=#1565c0;rounded=1" target="T_IN" value="传入 PCAT_ROOT / 算子名 / 覆盖目标">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="360" />
+              <mxPoint x="460" y="10" />
+              <mxPoint x="920" y="10" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_F33_TIN" edge="1" parent="1" source="F3_3" style="endArrow=classic;strokeWidth=3;strokeColor=#2e7d32;rounded=1" target="T_IN" value="传入 PCAT_ROOT / 算子名 / 修复点">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="560" />
+              <mxPoint x="820" y="-50" />
+              <mxPoint x="920" y="-50" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ADOC_DIN" edge="1" parent="1" source="A_DOC" style="endArrow=classic;strokeWidth=3;strokeColor=#6a1b9a;rounded=1" target="D_IN" value="传入 append-to-existing / 已填段落">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="700" />
+              <mxPoint x="440" y="-110" />
+              <mxPoint x="1320" y="-110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_FDOC_DIN" edge="1" parent="1" source="F_DOC" style="endArrow=classic;strokeWidth=3;strokeColor=#e65100;rounded=1" target="D_IN" value="传入 append-to-existing / 已填段落">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="840" />
+              <mxPoint x="800" y="-170" />
+              <mxPoint x="1320" y="-170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_TOUT_A3" edge="1" parent="1" source="T_OUT" style="endArrow=classic;dashed=1;strokeColor=#1565c0;rounded=1" target="A3" value="骨架就绪">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="980" />
+              <mxPoint x="300" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_TOUT_F4" edge="1" parent="1" source="T_OUT" style="endArrow=classic;dashed=1;strokeColor=#2e7d32;rounded=1" target="F4" value="增量就绪">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="680" />
+              <mxPoint x="700" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_DOUT_ADONE" edge="1" parent="1" source="D_OUT" style="endArrow=classic;dashed=1;strokeColor=#6a1b9a;rounded=1" target="A_DONE" value="归档校验通过">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1320" y="1020" />
+              <mxPoint x="260" y="1020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_DOUT_FDONE" edge="1" parent="1" source="D_OUT" style="endArrow=classic;dashed=1;strokeColor=#e65100;rounded=1" target="F_DONE" value="归档校验通过">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1320" y="1000" />
+              <mxPoint x="660" y="1000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_FEXIT_A1" edge="1" parent="1" source="F_EXIT" style="endArrow=classic;dashed=1;dashPattern=1 4;strokeColor=#842029;strokeWidth=2;rounded=1" target="A1" value="说明性引用&#xa;请退出 fix 流程&#xa;改用 add-compat-api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="340" />
+              <mxPoint x="380" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
