@@ -53,7 +53,8 @@
 | 18 | `at::empty_strided` | `at::empty_strided` (compat层) | API 完全一致 | - |
 | 19 | `at::equal` | `at::equal` (compat层) | API 完全一致 | - |
 | 20 | `at::expand` | `at::expand` (compat层) | API 完全一致 | - |
-| 21 | `at::eye` | `at::eye` (compat层) | API 完全一致 | - |
+| 21 | `at::broadcast_to` | `at::broadcast_to` (compat层) | API 完全一致 | - |
+| 22 | `at::eye` | `at::eye` (compat层) | API 完全一致 | - |
 | 22 | `at::flatten` | `at::flatten` (compat层) | API 完全一致 | - |
 | 23 | `at::from_blob` | `at::from_blob` (compat层) | API 完全一致 | - |
 | 24 | `at::full` | `at::full` (compat层) | API 完全一致 | - |
@@ -722,8 +723,7 @@
 | 296 | `at::binary_cross_entropy_with_logits` | - | 功能缺失 | - |
 | 297 | `at::blackman_window` | - | 功能缺失 | - |
 | 298 | `at::block_diag` | - | 功能缺失 | - |
-| 299 | `at::broadcast_to` | - | 功能缺失 | - |
-| 300 | `at::bucketize` | - | 功能缺失 | - |
+| 299 | `at::bucketize` | - | 功能缺失 | - |
 | 301 | `at::can_cast` | - | 功能缺失 | - |
 | 302 | `at::cartesian_prod` | - | 功能缺失 | - |
 | 303 | `at::cauchy` | - | 功能缺失 | - |
@@ -1217,7 +1217,7 @@
 
 ## 统计
 
-- **API 完全一致**: 66 个
+- **API 完全一致**: 67 个
 - **仅 API 调用方式不一致**: 4 个
 - **仅参数名不一致**: 79 个
 - **paddle 参数更多**: 45 个
@@ -1229,7 +1229,7 @@
 - **组合替代实现**: 0 个
 - **API 别名**: 18 个
 - **语义差异**: 1 个
-- **功能缺失**: 790 个
+- **功能缺失**: 789 个
 - **API 别名映射数**: 18 个
 - **libtorch 主 ops 总数**: 1082 个
 - **实际参与映射的 ops 数**: 1096 个
