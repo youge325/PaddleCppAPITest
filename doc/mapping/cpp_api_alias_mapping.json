@@ -1,0 +1,15 @@
+{
+  "_conj": "conj",
+  "_fft_c2c": "fft_c2c",
+  "_fft_c2r": "fft_r2c",
+  "_fft_r2c": "fft_r2c",
+  "_log_softmax": "log_softmax",
+  "_logcumsumexp": "logcumsumexp",
+  "_softmax": "softmax",
+  "_stack": "stack",
+  "_standard_gamma": "standard_gamma",
+  "conv_transpose2d": "conv2d_transpose",
+  "conv_transpose3d": "conv3d_transpose",
+  "grid_sampler": "grid_sample",
+  "log_sigmoid": "logsigmoid"
+}
