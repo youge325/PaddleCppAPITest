@@ -19,7 +19,6 @@ class BroadcastToTest : public ::testing::Test {
   void SetUp() override {}
 };
 
-<<<<<<< HEAD
 // Compute element offset from flat index using strides (strides-aware access)
 static inline int64_t compute_offset_from_flat_index(int64_t flat_idx,
                                                      const at::Tensor& tensor) {
@@ -37,8 +36,6 @@ static inline int64_t compute_offset_from_flat_index(int64_t flat_idx,
 // Uses strides-aware access to faithfully reflect the underlying layout.
 // If Paddle and PyTorch produce different strides, result_cmp will DIFFER,
 // and the difference should be recorded as a known mismatch.
-=======
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
 static void write_broadcast_to_result_to_file(FileManerger* file,
                                               const at::Tensor& result) {
   *file << std::to_string(result.dim()) << " ";
@@ -46,18 +43,14 @@ static void write_broadcast_to_result_to_file(FileManerger* file,
   for (int64_t i = 0; i < result.dim(); ++i) {
     *file << std::to_string(result.sizes()[i]) << " ";
   }
-<<<<<<< HEAD
   // Record strides so layout differences are detected by result_cmp
   for (int64_t i = 0; i < result.dim(); ++i) {
     *file << std::to_string(result.strides()[i]) << " ";
   }
-=======
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
   if (result.numel() == 0) {
     *file << "empty ";
     return;
   }
-<<<<<<< HEAD
   switch (result.scalar_type()) {
     case at::kFloat: {
       float* data = result.data_ptr<float>();
@@ -95,13 +88,6 @@ static void write_broadcast_to_result_to_file(FileManerger* file,
       *file << "unsupported_dtype ";
       break;
   }
-=======
-  at::Tensor cont = result.contiguous();
-  float* data = cont.data_ptr<float>();
-  *file << std::to_string(data[0]) << " ";
-  *file << std::to_string(data[cont.numel() - 1]) << " ";
-  *file << std::to_string(cont.sum().item<float>()) << " ";
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
 }
 
 // ======================== Shape coverage ========================
@@ -183,19 +169,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeDouble) {
   at::Tensor t = at::ones({1, 2}, at::kDouble);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-<<<<<<< HEAD
   write_broadcast_to_result_to_file(&file, result);
-=======
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  double* data = cont.data_ptr<double>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
   file << "\n";
   file.saveFile();
 }
@@ -208,19 +182,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeInt) {
   at::Tensor t = at::ones({1, 2}, at::kInt);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-<<<<<<< HEAD
   write_broadcast_to_result_to_file(&file, result);
-=======
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  int* data = cont.data_ptr<int>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
   file << "\n";
   file.saveFile();
 }
@@ -233,19 +195,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeLong) {
   at::Tensor t = at::ones({1, 2}, at::kLong);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-<<<<<<< HEAD
   write_broadcast_to_result_to_file(&file, result);
-=======
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  int64_t* data = cont.data_ptr<int64_t>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
->>>>>>> d0b418e ([Cpp API Compatibility] Add broadcast_to cross-framework test and update mapping doc)
   file << "\n";
   file.saveFile();
 }
