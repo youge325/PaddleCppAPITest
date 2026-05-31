@@ -14,6 +14,7 @@
 | # | 问题接口 | 触发场景 | 根因说明 |
 |---|---------|---------|---------|
 | 1 | `at::broadcast_to` / `Tensor::broadcast_to` | 对齐测试移除 `.contiguous()` 后 result_cmp DIFFER | Paddle `expand` 对广播维度分配非零 strides（如 `{1,3}` expand 到 `{2,3}` 时 strides 为 `[3,1]`），而 PyTorch 对广播维度分配 stride 为 0（`[0,1]`）。两者在逻辑值上完全一致，但底层存储布局（strides）策略不同 |
+| 2 | `at::expand` / `Tensor::expand` | 对齐测试移除 `.contiguous()` 后 result_cmp DIFFER | 同根因 #1：Paddle `expand` 的 strides 分配策略与 PyTorch 不同。`{1}` expand 到 `{2,3}` 时 Paddle strides 为 `[3,1]`，PyTorch 为 `[0,1]` |
 
 ### 修复内容
 
@@ -22,6 +23,8 @@
   - 移除所有 `.contiguous()` 调用，改用 strides-aware 元素访问（`compute_offset_from_flat_index`）
   - 在结果输出中增加 strides 字段，使 result_cmp 能检测布局差异
   - 测试不掩盖 strides 差异，保留 DIFFER 并在此文档归档
+- `test/ATen/ops/ExpandTest.cpp`
+  - 同上：移除 `.contiguous()`，改用 strides-aware 访问，增加 strides 字段
 
 ### 验证结果
 
@@ -29,8 +32,11 @@
 |--------|----------------|-----------------|------|
 | `BroadcastToTest.BroadcastToSmall` | `2 6 2 3 3 1 1.000000 ...` | `2 6 2 3 0 1 1.000000 ...` | ⚠️ strides 策略不同（已知差异） |
 | `BroadcastToTest.BroadcastToLarge` | `3 262144 64 32 128 4096 128 1 ...` | `3 262144 64 32 128 0 0 1 ...` | ⚠️ strides 策略不同（已知差异） |
+| `ExpandTest.ExpandRankLessCanUseExpand` | `2 6 2 3 3 1 1.000000 ...` | `2 6 2 3 0 1 1.000000 ...` | ⚠️ strides 策略不同（已知差异） |
+| `ExpandTest.ExpandRankLessFallbackGrowTarget` | `3 12 2 3 2 6 2 1 ...` | `3 12 2 3 2 0 0 1 ...` | ⚠️ strides 策略不同（已知差异） |
 
 - **result_cmp**：`paddle_BroadcastToTest` 与 `torch_BroadcastToTest` **DIFFER**（设计差异，非 bug）
+- **result_cmp**：`paddle_ExpandTest` 与 `torch_ExpandTest` **DIFFER**（设计差异，非 bug）
 
 ### 风险与后续
 - 已知风险：Paddle expand 的 strides 分配策略与 PyTorch 不同，但不影响逻辑计算结果
