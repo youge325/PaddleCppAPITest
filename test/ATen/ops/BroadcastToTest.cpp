@@ -19,6 +19,23 @@ class BroadcastToTest : public ::testing::Test {
   void SetUp() override {}
 };
 
+// Compute element offset from flat index using strides (strides-aware access)
+static inline int64_t compute_offset_from_flat_index(int64_t flat_idx,
+                                                     const at::Tensor& tensor) {
+  int64_t offset = 0;
+  int64_t remainder = flat_idx;
+  for (int64_t d = tensor.dim() - 1; d >= 0; --d) {
+    int64_t coord = remainder % tensor.sizes()[d];
+    remainder /= tensor.sizes()[d];
+    offset += coord * tensor.strides()[d];
+  }
+  return offset;
+}
+
+// Write tensor metadata (dim, numel, sizes, strides) and all element values
+// Uses strides-aware access to faithfully reflect the underlying layout.
+// If Paddle and PyTorch produce different strides, result_cmp will DIFFER,
+// and the difference should be recorded as a known mismatch.
 static void write_broadcast_to_result_to_file(FileManerger* file,
                                               const at::Tensor& result) {
   *file << std::to_string(result.dim()) << " ";
@@ -26,15 +43,51 @@ static void write_broadcast_to_result_to_file(FileManerger* file,
   for (int64_t i = 0; i < result.dim(); ++i) {
     *file << std::to_string(result.sizes()[i]) << " ";
   }
+  // Record strides so layout differences are detected by result_cmp
+  for (int64_t i = 0; i < result.dim(); ++i) {
+    *file << std::to_string(result.strides()[i]) << " ";
+  }
   if (result.numel() == 0) {
     *file << "empty ";
     return;
   }
-  at::Tensor cont = result.contiguous();
-  float* data = cont.data_ptr<float>();
-  *file << std::to_string(data[0]) << " ";
-  *file << std::to_string(data[cont.numel() - 1]) << " ";
-  *file << std::to_string(cont.sum().item<float>()) << " ";
+  switch (result.scalar_type()) {
+    case at::kFloat: {
+      float* data = result.data_ptr<float>();
+      for (int64_t i = 0; i < result.numel(); ++i) {
+        int64_t offset = compute_offset_from_flat_index(i, result);
+        *file << std::to_string(data[offset]) << " ";
+      }
+      break;
+    }
+    case at::kDouble: {
+      double* data = result.data_ptr<double>();
+      for (int64_t i = 0; i < result.numel(); ++i) {
+        int64_t offset = compute_offset_from_flat_index(i, result);
+        *file << std::to_string(data[offset]) << " ";
+      }
+      break;
+    }
+    case at::kInt: {
+      int32_t* data = result.data_ptr<int32_t>();
+      for (int64_t i = 0; i < result.numel(); ++i) {
+        int64_t offset = compute_offset_from_flat_index(i, result);
+        *file << std::to_string(data[offset]) << " ";
+      }
+      break;
+    }
+    case at::kLong: {
+      int64_t* data = result.data_ptr<int64_t>();
+      for (int64_t i = 0; i < result.numel(); ++i) {
+        int64_t offset = compute_offset_from_flat_index(i, result);
+        *file << std::to_string(data[offset]) << " ";
+      }
+      break;
+    }
+    default:
+      *file << "unsupported_dtype ";
+      break;
+  }
 }
 
 // ======================== Shape coverage ========================
@@ -116,15 +169,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeDouble) {
   at::Tensor t = at::ones({1, 2}, at::kDouble);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  double* data = cont.data_ptr<double>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
+  write_broadcast_to_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -137,15 +182,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeInt) {
   at::Tensor t = at::ones({1, 2}, at::kInt);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  int* data = cont.data_ptr<int>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
+  write_broadcast_to_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -158,15 +195,7 @@ TEST_F(BroadcastToTest, BroadcastToDtypeLong) {
   at::Tensor t = at::ones({1, 2}, at::kLong);
   at::Tensor result = t.broadcast_to({3, 2});
   file << std::to_string(static_cast<int>(result.scalar_type())) << " ";
-  file << std::to_string(result.dim()) << " ";
-  file << std::to_string(result.numel()) << " ";
-  for (int64_t i = 0; i < result.dim(); ++i) {
-    file << std::to_string(result.sizes()[i]) << " ";
-  }
-  at::Tensor cont = result.contiguous();
-  int64_t* data = cont.data_ptr<int64_t>();
-  file << std::to_string(data[0]) << " ";
-  file << std::to_string(data[cont.numel() - 1]) << " ";
+  write_broadcast_to_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
