@@ -390,6 +390,50 @@ TEST_F(ScatterReduceTest, ScatterReduceEmpty) {
   file.saveFile();
 }
 
+// Shape: small 2D, Dtype: kFloat, Reduce: prod, include_self=false
+TEST_F(ScatterReduceTest, ScatterReduceProdFloatNoIncludeSelf) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceProdFloatNoIncludeSelf ";
+
+  at::Tensor self = at::full({3, 5}, 5.0f, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 2.0f;
+  src.data_ptr<float>()[1] = 3.0f;
+  src.data_ptr<float>()[2] = 4.0f;
+  src.data_ptr<float>()[3] = 5.0f;
+  src.data_ptr<float>()[4] = 6.0f;
+  at::Tensor result = self.scatter_reduce(0, index, src, "prod", false);
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Shape: small 2D, Dtype: kFloat, In-place scatter_reduce_, Reduce: prod
+TEST_F(ScatterReduceTest, ScatterReduceInplaceProdFloatSmall) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceProdFloatSmall ";
+
+  at::Tensor self = at::ones({3, 5}, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 2.0f;
+  src.data_ptr<float>()[1] = 3.0f;
+  src.data_ptr<float>()[2] = 4.0f;
+  src.data_ptr<float>()[3] = 5.0f;
+  src.data_ptr<float>()[4] = 6.0f;
+  self.scatter_reduce_(0, index, src, "prod");
+  write_scatter_reduce_result_to_file(&file, self);
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Exception: invalid reduce mode
 TEST_F(ScatterReduceTest, ScatterReduceInvalidReduce) {
   auto file_name = g_custom_param.get();
