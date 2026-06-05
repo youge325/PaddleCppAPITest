@@ -528,5 +528,27 @@ TEST_F(ScatterReduceTest, ScatterReduceInvalidReduce) {
   file.saveFile();
 }
 
+// Exception: dim out of int range
+TEST_F(ScatterReduceTest, ScatterReduceDimOutOfRange) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceDimOutOfRange ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = make_index_1x5();
+    at::Tensor src = at::ones({1, 5}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(
+        static_cast<int64_t>(INT_MAX) + 1, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
 }  // namespace test
 }  // namespace at
