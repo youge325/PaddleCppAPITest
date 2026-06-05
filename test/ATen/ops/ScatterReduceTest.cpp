@@ -441,7 +441,9 @@ TEST_F(ScatterReduceTest, ScatterReduceAmaxFloatNoIncludeSelf) {
   file.openAppend();
   file << "ScatterReduceAmaxFloatNoIncludeSelf ";
 
-  at::Tensor self = at::full({3, 5}, 5.0f, at::kFloat);
+  // Use self=25.0f so some src values are below self (10, 20) and some above
+  // (30, 40, 50). This ensures amax with include_self=false differs from true.
+  at::Tensor self = at::full({3, 5}, 25.0f, at::kFloat);
   at::Tensor index = make_index_1x5();
   at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
   src.data_ptr<float>()[0] = 10.0f;
