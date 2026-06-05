@@ -179,5 +179,54 @@ TEST_F(ExpandTest, ExpandInputRankGreaterThanTargetRank) {
   file.saveFile();
 }
 
+// Scalar expand (0-d tensor)
+TEST_F(ExpandTest, ExpandScalar) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ExpandScalar ";
+
+  at::Tensor t = at::full({}, 5.0f, at::kFloat);
+  at::Tensor result = t.expand({2, 3});
+  write_expand_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// expand supports -1 (keep original size)
+TEST_F(ExpandTest, ExpandNegativeOne) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ExpandNegativeOne ";
+
+  at::Tensor t = at::ones({3}, at::kFloat);
+  at::Tensor result = t.expand({-1});
+  write_expand_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// -1 in leading non-existing dimension throws
+TEST_F(ExpandTest, ExpandNegativeOneLeadingError) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ExpandNegativeOneLeadingError ";
+
+  try {
+    at::Tensor t = at::ones({3}, at::kFloat);
+    at::Tensor result = t.expand({-1, 4});
+    write_expand_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
 }  // namespace test
 }  // namespace at

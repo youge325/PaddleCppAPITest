@@ -146,6 +146,19 @@ TEST_F(BroadcastToTest, BroadcastToBoundaryRankLess) {
   file.saveFile();
 }
 
+// Boundary: scalar (0-d tensor)
+TEST_F(BroadcastToTest, BroadcastToScalar) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BroadcastToScalar ";
+  at::Tensor t = at::full({}, 5.0f, at::kFloat);
+  at::Tensor result = t.broadcast_to({2, 3});
+  write_broadcast_to_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
 // ======================== Dtype coverage ========================
 
 TEST_F(BroadcastToTest, BroadcastToDtypeFloat) {
@@ -233,6 +246,21 @@ TEST_F(BroadcastToTest, BroadcastToHighRankToLowRank) {
   } catch (const std::exception&) {
     file << "exception ";
   }
+
+  file << "\n";
+  file.saveFile();
+}
+
+// broadcast_to with -1 (keep original size, same as expand)
+TEST_F(BroadcastToTest, BroadcastToNegativeOne) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BroadcastToNegativeOne ";
+
+  at::Tensor t = at::ones({3}, at::kFloat);
+  at::Tensor result = t.broadcast_to({-1});
+  write_broadcast_to_result_to_file(&file, result);
 
   file << "\n";
   file.saveFile();
