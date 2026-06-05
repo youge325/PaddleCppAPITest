@@ -434,6 +434,72 @@ TEST_F(ScatterReduceTest, ScatterReduceInplaceProdFloatSmall) {
   file.saveFile();
 }
 
+// Shape: small 2D, Dtype: kFloat, Reduce: amax, include_self=false
+TEST_F(ScatterReduceTest, ScatterReduceAmaxFloatNoIncludeSelf) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceAmaxFloatNoIncludeSelf ";
+
+  at::Tensor self = at::full({3, 5}, 5.0f, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 10.0f;
+  src.data_ptr<float>()[1] = 20.0f;
+  src.data_ptr<float>()[2] = 30.0f;
+  src.data_ptr<float>()[3] = 40.0f;
+  src.data_ptr<float>()[4] = 50.0f;
+  at::Tensor result = self.scatter_reduce(0, index, src, "amax", false);
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Shape: small 2D, Dtype: kFloat, Reduce: amin, include_self=false
+TEST_F(ScatterReduceTest, ScatterReduceAminFloatNoIncludeSelf) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceAminFloatNoIncludeSelf ";
+
+  at::Tensor self = at::full({3, 5}, 5.0f, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 10.0f;
+  src.data_ptr<float>()[1] = 20.0f;
+  src.data_ptr<float>()[2] = 30.0f;
+  src.data_ptr<float>()[3] = 40.0f;
+  src.data_ptr<float>()[4] = 50.0f;
+  at::Tensor result = self.scatter_reduce(0, index, src, "amin", false);
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Shape: small 2D, Dtype: kFloat, Reduce: mean, include_self=false
+TEST_F(ScatterReduceTest, ScatterReduceMeanFloatNoIncludeSelf) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceMeanFloatNoIncludeSelf ";
+
+  at::Tensor self = at::full({3, 5}, 5.0f, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 10.0f;
+  src.data_ptr<float>()[1] = 20.0f;
+  src.data_ptr<float>()[2] = 30.0f;
+  src.data_ptr<float>()[3] = 40.0f;
+  src.data_ptr<float>()[4] = 50.0f;
+  at::Tensor result = self.scatter_reduce(0, index, src, "mean", false);
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Exception: invalid reduce mode
 TEST_F(ScatterReduceTest, ScatterReduceInvalidReduce) {
   auto file_name = g_custom_param.get();
