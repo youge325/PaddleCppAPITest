@@ -303,6 +303,24 @@ TEST_F(TakeTest, TakeExceptionBelowNegativeNumel) {
   file.saveFile();
 }
 
+TEST_F(TakeTest, TakeCudaNegativeIndex) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({-1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCudaNegativeIndex ";
+  try {
+    at::Tensor result = at::take(t.cuda(), index.cuda());
+    write_result_to_file(&file, result.cpu());
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 TEST_F(TakeTest, TakeCudaExceptionAtNumel) {
   at::Tensor t = make_test_tensor(at::kFloat);
   at::Tensor index = make_index_tensor({t.numel()});
@@ -311,6 +329,24 @@ TEST_F(TakeTest, TakeCudaExceptionAtNumel) {
   FileManerger file(file_name);
   file.openAppend();
   file << "TakeCudaExceptionAtNumel ";
+  try {
+    at::Tensor result = at::take(t.cuda(), index.cuda());
+    write_result_to_file(&file, result.cpu());
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeCudaExceptionBelowNegativeNumel) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({-t.numel() - 1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCudaExceptionBelowNegativeNumel ";
   try {
     at::Tensor result = at::take(t.cuda(), index.cuda());
     write_result_to_file(&file, result.cpu());
