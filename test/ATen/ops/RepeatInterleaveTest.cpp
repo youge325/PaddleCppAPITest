@@ -401,5 +401,54 @@ TEST_F(RepeatInterleaveTest, RepeatsSizeMismatch) {
   file.saveFile();
 }
 
+TEST_F(RepeatInterleaveTest, TensorRepeatsNegativeOutputSize) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TensorRepeatsNegativeOutputSize ";
+  try {
+    at::Tensor repeats = make_long_tensor({1, 2, 1});
+    at::Tensor result = tensor.repeat_interleave(repeats, 1, -1);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(RepeatInterleaveTest, TensorRepeatsZeroOutputSizeMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TensorRepeatsZeroOutputSizeMismatch ";
+  try {
+    at::Tensor repeats = make_long_tensor({1, 2, 1});
+    at::Tensor result = tensor.repeat_interleave(repeats, 1, 0);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(RepeatInterleaveTest, TensorRepeatsZeroOutputSizeValid) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TensorRepeatsZeroOutputSizeValid ";
+  try {
+    at::Tensor t = at::ones({3}, at::kFloat);
+    at::Tensor repeats = make_long_tensor({0, 0, 0});
+    at::Tensor result = t.repeat_interleave(repeats, 0, 0);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 }  // namespace test
 }  // namespace at
