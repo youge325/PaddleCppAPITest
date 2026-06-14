@@ -13,24 +13,27 @@
 
 任一未通过 → **不要**进入本流程。
 
-## 1) 从 fork 主分支 checkout 新分支
+## 1) 从本地跟踪 origin 的基分支创建新分支
 
 ### Paddle 侧
 
 ```bash
 cd "$PADDLE_ROOT"
-git fetch upstream
+git checkout develop
+git pull --ff-only origin develop
 # add 流程
-git checkout -B "add/<api-name>-$(date +%Y%m%d)" upstream/develop
+git checkout -b "add/<api-name>-$(date +%Y%m%d)"
 # fix 流程
-git checkout -B "fix/<pr-or-issue-num>-$(date +%Y%m%d)" upstream/develop
+git checkout -b "fix/<pr-or-issue-num>-$(date +%Y%m%d)"
 ```
 
 分支命名规则：
 - add：`add/<api-name>-<YYYYMMDD>`（例：`add/abs-20260519`）
 - fix：`fix/<pr-num>-<YYYYMMDD>`（例：`fix/78652-20260519`）
 
-> 前提：Paddle 仓库已配置 `origin = <user>/Paddle` 与 `upstream = PaddlePaddle/Paddle`。若 remote 缺失，**提示用户配置后再继续**，不要主动改用户仓库的 remote。
+> 实际执行时只选 add 或 fix 对应的一条 `git checkout -b`。若分支已存在，`git checkout -b` 会失败；换新分支名或让用户手动处理，**不要**改用 `-B` 覆盖已有分支。
+>
+> 前提：Paddle 仓库已配置 `origin = <user>/Paddle` 与 `upstream = PaddlePaddle/Paddle`，且本地 `develop` 跟踪 `origin/develop`。若 remote 或本地基分支缺失，**提示用户配置后再继续**，不要主动改用户仓库的 remote。
 
 ## 2) commit 改动
 
@@ -100,8 +103,9 @@ EOF
 
 ```bash
 cd "$PCAT_ROOT"
-git fetch upstream
-git checkout -B "test/<api>-$(date +%Y%m%d)" upstream/master
+git checkout master
+git pull --ff-only origin master
+git checkout -b "test/<api>-$(date +%Y%m%d)"
 git add test/<改动文件>
 git commit -m "test(<api>): align with Paddle compat <api> 行为"
 git push origin <branch>

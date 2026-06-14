@@ -202,12 +202,12 @@ bash test/result_cmp.sh ./build/
 
 闭环验证通过且文档已回填后，按以下流程提交。完整命令模板见 [`references/Step7.md`](references/Step7.md)。
 
-1. **从 fork 主分支 checkout 新分支**（`git fetch upstream && git checkout -B add/<api>-<YYYYMMDD> upstream/develop`）
+1. **从本地跟踪 origin 的 develop 创建新分支**（`git checkout develop && git pull --ff-only origin develop && git checkout -b add/<api>-<YYYYMMDD>`）
 2. **commit 改动**（commit message 首行使用 `[Cpp API Compatibility] <对齐迭代记录标题>`）
 3. **push 到 fork**（`git push origin <branch>`）
 4. **`gh pr create` 到 upstream**（`--repo PaddlePaddle/Paddle --base develop`）
 5. **同步 PCAT 测试改动**
-   1. **从 fork 主分支 checkout 新分支**（`cd "$PCAT_ROOT" && git fetch upstream && git checkout -B test/<api>-<YYYYMMDD> upstream/master`）
+   1. **从本地跟踪 origin 的 master 创建新分支**（`cd "$PCAT_ROOT" && git checkout master && git pull --ff-only origin master && git checkout -b test/<api>-<YYYYMMDD>`）
    2. **commit 改动**（commit message 首行使用 `test(<api>): align with Paddle compat <api> 行为`）
    3. **push 到 fork**（`git push origin <branch>`）
    4. **`gh pr create` 到 upstream**（`--repo PFCCLab/PaddleCppAPITest --base master`，PR body 中加 `Related: PaddlePaddle/Paddle#<Paddle_PR_NUM>`）
