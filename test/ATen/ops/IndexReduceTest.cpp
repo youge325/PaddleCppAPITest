@@ -22,6 +22,22 @@ static at::Tensor tensor_from_vector_i64(const std::vector<int64_t>& values) {
       .clone();
 }
 
+static at::Tensor tensor_from_vector_i32(const std::vector<int32_t>& values) {
+  auto options = at::TensorOptions().dtype(at::kInt).device(at::kCPU);
+  return at::from_blob(const_cast<int32_t*>(values.data()),
+                       {static_cast<int64_t>(values.size())},
+                       options)
+      .clone();
+}
+
+static at::Tensor tensor_from_vector_f32(const std::vector<float>& values) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  return at::from_blob(const_cast<float*>(values.data()),
+                       {static_cast<int64_t>(values.size())},
+                       options)
+      .clone();
+}
+
 static void write_index_reduce_result_to_file(FileManerger* file,
                                               const at::Tensor& result) {
   *file << std::to_string(result.dim()) << " ";
@@ -264,6 +280,40 @@ TEST_F(IndexReduceTest, IndexReduceDim1) {
   file.saveFile();
 }
 
+TEST_F(IndexReduceTest, IndexReduceNegativeDim) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::zeros({4, 6}, options);
+  at::Tensor index = tensor_from_vector_i64({1, 3, 5});
+  at::Tensor source = at::full({4, 3}, 4.0f, options);
+
+  at::Tensor result = self.index_reduce(-1, index, source, "mean");
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceNegativeDim ";
+  write_index_reduce_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceInt32Index) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i32({0, 2});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  at::Tensor result = self.index_reduce(0, index, source, "prod");
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceInt32Index ";
+  write_index_reduce_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
 // index_reduce with boundary shape (1D tensor)
 TEST_F(IndexReduceTest, IndexReduce1D) {
   auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
@@ -317,6 +367,105 @@ TEST_F(IndexReduceTest, IndexReduceInvalidReduce) {
   } catch (const std::exception&) {
     file << "exception ";
   }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceSumReduceThrows) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i64({0, 2});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceSumReduceThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "sum");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReducePaddleReduceNameThrows) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i64({0, 2});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReducePaddleReduceNameThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "add");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceFloatIndexThrows) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_f32({0.0f, 2.0f});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceFloatIndexThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "prod");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceSourceDtypeMismatchThrows) {
+  auto self_options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  auto source_options = at::TensorOptions().dtype(at::kDouble).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, self_options);
+  at::Tensor index = tensor_from_vector_i64({0, 2});
+  at::Tensor source = at::full({2, 4}, 2.0, source_options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceSourceDtypeMismatchThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "prod");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceOutWritesOutput) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i64({0, 2});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+  at::Tensor out = at::zeros({3, 4}, options);
+
+  at::index_reduce_out(out, self, 0, index, source, "prod", false);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceOutWritesOutput ";
+  write_index_reduce_result_to_file(&file, out);
   file << "\n";
   file.saveFile();
 }
