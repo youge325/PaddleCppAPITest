@@ -26,6 +26,15 @@ static void write_column_stack_result_to_file(FileManerger* file,
   }
 }
 
+static void write_float_values_to_file(FileManerger* file,
+                                       const at::Tensor& result) {
+  auto contiguous = result.contiguous();
+  const float* data = contiguous.data_ptr<float>();
+  for (int64_t i = 0; i < contiguous.numel(); ++i) {
+    *file << std::to_string(data[i]) << " ";
+  }
+}
+
 class ColumnStackTest : public ::testing::Test {
  protected:
   void SetUp() override {}
@@ -43,6 +52,7 @@ TEST_F(ColumnStackTest, Basic1D) {
   std::vector<at::Tensor> tensors = {v1, v2};
   at::Tensor result = at::column_stack(tensors);
   write_column_stack_result_to_file(&file, result);
+  write_float_values_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -85,6 +95,44 @@ TEST_F(ColumnStackTest, ScalarTensors) {
   std::vector<at::Tensor> tensors = {s1, s2};
   at::Tensor result = at::column_stack(tensors);
   write_column_stack_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ColumnStackTest, ScalarAndVectorMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScalarAndVectorMismatch ";
+  try {
+    at::Tensor scalar = at::ones({}, at::kFloat);
+    at::Tensor vec = at::arange(3, at::kFloat);
+    std::vector<at::Tensor> tensors = {scalar, vec};
+    at::Tensor result = at::column_stack(tensors);
+    write_column_stack_result_to_file(&file, result);
+    write_float_values_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ColumnStackTest, ScalarAndMatrixMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScalarAndMatrixMismatch ";
+  try {
+    at::Tensor scalar = at::ones({}, at::kFloat);
+    at::Tensor matrix = at::ones({3, 2}, at::kFloat);
+    std::vector<at::Tensor> tensors = {scalar, matrix};
+    at::Tensor result = at::column_stack(tensors);
+    write_column_stack_result_to_file(&file, result);
+    write_float_values_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
   file << "\n";
   file.saveFile();
 }
