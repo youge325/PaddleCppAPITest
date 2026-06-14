@@ -314,6 +314,22 @@ TEST_F(RepeatInterleaveTest, EmptyStandaloneRepeats) {
   file.saveFile();
 }
 
+TEST_F(RepeatInterleaveTest, EmptyStandaloneRepeatsInvalidOutputSize) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "EmptyStandaloneRepeatsInvalidOutputSize ";
+  try {
+    at::Tensor repeats = make_long_tensor({});
+    at::Tensor result = at::repeat_interleave(repeats, 1);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 // ========== Data integrity ==========
 
 // Verify data after scalar repeat_interleave
@@ -409,6 +425,52 @@ TEST_F(RepeatInterleaveTest, TensorRepeatsNegativeOutputSize) {
   try {
     at::Tensor repeats = make_long_tensor({1, 2, 1});
     at::Tensor result = tensor.repeat_interleave(repeats, 1, -1);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(RepeatInterleaveTest, ScalarRepeatsNegativeOutputSize) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScalarRepeatsNegativeOutputSize ";
+  try {
+    at::Tensor result = tensor.repeat_interleave(2, 1, -1);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(RepeatInterleaveTest, ScalarZeroRepeatsInvalidOutputSize) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScalarZeroRepeatsInvalidOutputSize ";
+  try {
+    at::Tensor result = tensor.repeat_interleave(0, 1, 1);
+    write_repeat_interleave_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(RepeatInterleaveTest, StandaloneRepeatsZeroOutputSizeMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "StandaloneRepeatsZeroOutputSizeMismatch ";
+  try {
+    at::Tensor repeats = make_long_tensor({1, 2, 1});
+    at::Tensor result = at::repeat_interleave(repeats, 0);
     write_repeat_interleave_result_to_file(&file, result);
   } catch (const std::exception&) {
     file << "exception ";
