@@ -1,6 +1,8 @@
 #include <ATen/ATen.h>
 #include <ATen/core/Tensor.h>
+#include <ATen/ops/full.h>
 #include <ATen/ops/take.h>
+#include <ATen/ops/tensor.h>
 #include <ATen/ops/zeros.h>
 #include <c10/util/Exception.h>
 #include <gtest/gtest.h>
@@ -74,19 +76,13 @@ static at::Tensor make_test_tensor(at::ScalarType dtype) {
 }
 
 static at::Tensor make_index_tensor(const std::vector<int64_t>& values) {
-  auto t = at::empty({static_cast<int64_t>(values.size())},
-                     at::TensorOptions().dtype(at::kLong));
-  int64_t* data = t.data_ptr<int64_t>();
-  for (size_t i = 0; i < values.size(); ++i) data[i] = values[i];
-  return t;
+  return at::tensor(at::ArrayRef<int64_t>(values),
+                    at::TensorOptions().dtype(at::kLong));
 }
 
 static at::Tensor make_int_index_tensor(const std::vector<int32_t>& values) {
-  auto t = at::empty({static_cast<int64_t>(values.size())},
-                     at::TensorOptions().dtype(at::kInt));
-  int32_t* data = t.data_ptr<int32_t>();
-  for (size_t i = 0; i < values.size(); ++i) data[i] = values[i];
-  return t;
+  return at::tensor(at::ArrayRef<int32_t>(values),
+                    at::TensorOptions().dtype(at::kInt));
 }
 
 // Shape: small 1D index
@@ -149,12 +145,7 @@ TEST_F(TakeTest, TakeLongSmall) {
 // Shape: multi-dimensional index
 TEST_F(TakeTest, TakeFloatMultiDimIndex) {
   at::Tensor t = make_test_tensor(at::kFloat);
-  at::Tensor index = at::empty({2, 2}, at::TensorOptions().dtype(at::kLong));
-  int64_t* data = index.data_ptr<int64_t>();
-  data[0] = 0;
-  data[1] = 3;
-  data[2] = 7;
-  data[3] = 10;
+  at::Tensor index = make_index_tensor({0, 3, 7, 10}).reshape({2, 2});
   at::Tensor result = at::take(t, index);
 
   auto file_name = g_custom_param.get();
@@ -169,8 +160,7 @@ TEST_F(TakeTest, TakeFloatMultiDimIndex) {
 // Shape: scalar index (0-dim)
 TEST_F(TakeTest, TakeFloatScalarIndex) {
   at::Tensor t = make_test_tensor(at::kFloat);
-  at::Tensor index = at::empty({}, at::TensorOptions().dtype(at::kLong));
-  index.data_ptr<int64_t>()[0] = 7;
+  at::Tensor index = at::full({}, 7, at::kLong);
   at::Tensor result = at::take(t, index);
 
   auto file_name = g_custom_param.get();
@@ -193,6 +183,24 @@ TEST_F(TakeTest, TakeFloatEmptyIndex) {
   file.openAppend();
   file << "TakeFloatEmptyIndex ";
   write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeEmptyInputNonEmptyIndexThrows) {
+  at::Tensor t = at::empty({0}, at::TensorOptions().dtype(at::kFloat));
+  at::Tensor index = make_index_tensor({0});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeEmptyInputNonEmptyIndexThrows ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
   file << "\n";
   file.saveFile();
 }
@@ -224,8 +232,8 @@ TEST_F(TakeTest, TakeExceptionOutOfRange) {
   try {
     at::Tensor result = at::take(t, index);
     write_result_to_file(&file, result);
-  } catch (const std::exception& e) {
-    file << "exception: ";
+  } catch (const std::exception&) {
+    file << "exception ";
   }
   file << "\n";
   file.saveFile();
