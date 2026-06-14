@@ -196,14 +196,28 @@ TEST_F(ScatterReduceTest, ScatterReduceSumFloatLarge) {
   file.saveFile();
 }
 
-// Shape: small 2D, Dtype: kFloat, Reduce: replace
-// NOTE: Torch scatter_reduce "replace" mode has a segfault on this libtorch
-// version. Output "exception" on both sides for consistent comparison.
+// Exception: PyTorch scatter_reduce does not support replace mode.
 TEST_F(ScatterReduceTest, ScatterReduceReplaceFloatSmall) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
   file.openAppend();
-  file << "ScatterReduceReplaceFloatSmall exception ";
+  file << "ScatterReduceReplaceFloatSmall ";
+
+  try {
+    at::Tensor self = at::zeros({3, 5}, at::kFloat);
+    at::Tensor index = make_index_1x5();
+    at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+    src.data_ptr<float>()[0] = 1.0f;
+    src.data_ptr<float>()[1] = 2.0f;
+    src.data_ptr<float>()[2] = 3.0f;
+    src.data_ptr<float>()[3] = 4.0f;
+    src.data_ptr<float>()[4] = 5.0f;
+    at::Tensor result = self.scatter_reduce(0, index, src, "replace");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
   file << "\n";
   file.saveFile();
 }
@@ -329,6 +343,72 @@ TEST_F(ScatterReduceTest, ScatterReduceSumFloatDim1) {
   file.saveFile();
 }
 
+// Shape: small 2D, Dtype: kFloat, Reduce: sum, dim=-1
+TEST_F(ScatterReduceTest, ScatterReduceSumFloatNegativeDim) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceSumFloatNegativeDim ";
+
+  at::Tensor self = at::zeros({2, 4}, at::kFloat);
+  at::Tensor index = at::zeros({2, 4}, at::kLong);
+  index.data_ptr<int64_t>()[0] = 0;
+  index.data_ptr<int64_t>()[1] = 1;
+  index.data_ptr<int64_t>()[2] = 2;
+  index.data_ptr<int64_t>()[3] = 1;
+  index.data_ptr<int64_t>()[4] = 3;
+  index.data_ptr<int64_t>()[5] = 0;
+  index.data_ptr<int64_t>()[6] = 1;
+  index.data_ptr<int64_t>()[7] = 2;
+  at::Tensor src = at::full({2, 4}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 1.0f;
+  src.data_ptr<float>()[1] = 2.0f;
+  src.data_ptr<float>()[2] = 3.0f;
+  src.data_ptr<float>()[3] = 4.0f;
+  src.data_ptr<float>()[4] = 5.0f;
+  src.data_ptr<float>()[5] = 6.0f;
+  src.data_ptr<float>()[6] = 7.0f;
+  src.data_ptr<float>()[7] = 8.0f;
+  at::Tensor result = self.scatter_reduce(-1, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Shape: small 2D, Dtype: kFloat, In-place scatter_reduce_, dim=-1
+TEST_F(ScatterReduceTest, ScatterReduceInplaceFloatNegativeDim) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceFloatNegativeDim ";
+
+  at::Tensor self = at::zeros({2, 4}, at::kFloat);
+  at::Tensor index = at::zeros({2, 4}, at::kLong);
+  index.data_ptr<int64_t>()[0] = 0;
+  index.data_ptr<int64_t>()[1] = 1;
+  index.data_ptr<int64_t>()[2] = 2;
+  index.data_ptr<int64_t>()[3] = 1;
+  index.data_ptr<int64_t>()[4] = 3;
+  index.data_ptr<int64_t>()[5] = 0;
+  index.data_ptr<int64_t>()[6] = 1;
+  index.data_ptr<int64_t>()[7] = 2;
+  at::Tensor src = at::full({2, 4}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 1.0f;
+  src.data_ptr<float>()[1] = 2.0f;
+  src.data_ptr<float>()[2] = 3.0f;
+  src.data_ptr<float>()[3] = 4.0f;
+  src.data_ptr<float>()[4] = 5.0f;
+  src.data_ptr<float>()[5] = 6.0f;
+  src.data_ptr<float>()[6] = 7.0f;
+  src.data_ptr<float>()[7] = 8.0f;
+  self.scatter_reduce_(-1, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, self);
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Shape: small 2D, Dtype: kFloat, Reduce: sum, include_self=false
 TEST_F(ScatterReduceTest, ScatterReduceSumFloatNoIncludeSelf) {
   auto file_name = g_custom_param.get();
@@ -346,6 +426,64 @@ TEST_F(ScatterReduceTest, ScatterReduceSumFloatNoIncludeSelf) {
   src.data_ptr<float>()[4] = 5.0f;
   at::Tensor result = self.scatter_reduce(0, index, src, "sum", false);
   write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Exception: PyTorch scatter_reduce rejects negative indices.
+TEST_F(ScatterReduceTest, ScatterReduceNegativeIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceNegativeIndex ";
+
+  try {
+    at::Tensor self = at::zeros({2, 4}, at::kFloat);
+    at::Tensor index = at::zeros({2, 4}, at::kLong);
+    index.data_ptr<int64_t>()[0] = 0;
+    index.data_ptr<int64_t>()[1] = -1;
+    index.data_ptr<int64_t>()[2] = 2;
+    index.data_ptr<int64_t>()[3] = 1;
+    index.data_ptr<int64_t>()[4] = 3;
+    index.data_ptr<int64_t>()[5] = 0;
+    index.data_ptr<int64_t>()[6] = 1;
+    index.data_ptr<int64_t>()[7] = 2;
+    at::Tensor src = at::ones({2, 4}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(1, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Exception: PyTorch scatter_reduce_ rejects negative indices.
+TEST_F(ScatterReduceTest, ScatterReduceInplaceNegativeIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceNegativeIndex ";
+
+  try {
+    at::Tensor self = at::zeros({2, 4}, at::kFloat);
+    at::Tensor index = at::zeros({2, 4}, at::kLong);
+    index.data_ptr<int64_t>()[0] = 0;
+    index.data_ptr<int64_t>()[1] = -1;
+    index.data_ptr<int64_t>()[2] = 2;
+    index.data_ptr<int64_t>()[3] = 1;
+    index.data_ptr<int64_t>()[4] = 3;
+    index.data_ptr<int64_t>()[5] = 0;
+    index.data_ptr<int64_t>()[6] = 1;
+    index.data_ptr<int64_t>()[7] = 2;
+    at::Tensor src = at::ones({2, 4}, at::kFloat);
+    self.scatter_reduce_(1, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, self);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
 
   file << "\n";
   file.saveFile();
