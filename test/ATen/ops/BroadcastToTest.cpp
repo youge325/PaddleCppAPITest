@@ -251,7 +251,7 @@ TEST_F(BroadcastToTest, BroadcastToHighRankToLowRank) {
   file.saveFile();
 }
 
-// broadcast_to with -1 (keep original size, same as expand)
+// C++ ATen broadcast_to follows expand-style -1 keep-dim behavior.
 TEST_F(BroadcastToTest, BroadcastToNegativeOne) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
@@ -260,6 +260,58 @@ TEST_F(BroadcastToTest, BroadcastToNegativeOne) {
 
   at::Tensor t = at::ones({3}, at::kFloat);
   at::Tensor result = t.broadcast_to({-1});
+  write_broadcast_to_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(BroadcastToTest, BroadcastToNegativeLessThanMinusOne) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BroadcastToNegativeLessThanMinusOne ";
+
+  try {
+    at::Tensor t = at::ones({1}, at::kFloat);
+    at::Tensor result = t.broadcast_to({-2});
+    write_broadcast_to_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(BroadcastToTest, ExpandNegativeLessThanMinusOne) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ExpandNegativeLessThanMinusOne ";
+
+  try {
+    at::Tensor t = at::ones({1}, at::kFloat);
+    at::Tensor result = t.expand({-2});
+    write_broadcast_to_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(BroadcastToTest, BroadcastToStrideZeroValues) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BroadcastToStrideZeroValues ";
+
+  at::Tensor t = at::zeros({1, 2}, at::kFloat);
+  t.data_ptr<float>()[0] = 3.0f;
+  t.data_ptr<float>()[1] = 7.0f;
+  at::Tensor result = t.broadcast_to({3, 2});
   write_broadcast_to_result_to_file(&file, result);
 
   file << "\n";
