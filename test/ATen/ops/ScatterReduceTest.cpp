@@ -640,6 +640,86 @@ TEST_F(ScatterReduceTest, ScatterReduceMeanFloatNoIncludeSelf) {
   file.saveFile();
 }
 
+TEST_F(ScatterReduceTest, ScatterReduceRankMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceRankMismatch ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::zeros({2}, at::kLong);
+    at::Tensor src = at::ones({2, 2}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceIndexLargerThanSrc) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceIndexLargerThanSrc ";
+
+  try {
+    at::Tensor self = at::zeros({3, 2}, at::kFloat);
+    at::Tensor index = at::zeros({3, 2}, at::kLong);
+    at::Tensor src = at::ones({2, 2}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceIndexLargerThanSelf) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceIndexLargerThanSelf ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::zeros({1, 3}, at::kLong);
+    at::Tensor src = at::ones({1, 3}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceInplaceShapeMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceShapeMismatch ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::zeros({1, 3}, at::kLong);
+    at::Tensor src = at::ones({1, 3}, at::kFloat);
+    at::Tensor result = self.scatter_reduce_(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Exception: invalid reduce mode
 TEST_F(ScatterReduceTest, ScatterReduceInvalidReduce) {
   auto file_name = g_custom_param.get();
