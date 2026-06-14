@@ -81,6 +81,14 @@ static at::Tensor make_index_tensor(const std::vector<int64_t>& values) {
   return t;
 }
 
+static at::Tensor make_int_index_tensor(const std::vector<int32_t>& values) {
+  auto t = at::empty({static_cast<int64_t>(values.size())},
+                     at::TensorOptions().dtype(at::kInt));
+  int32_t* data = t.data_ptr<int32_t>();
+  for (size_t i = 0; i < values.size(); ++i) data[i] = values[i];
+  return t;
+}
+
 // Shape: small 1D index
 TEST_F(TakeTest, TakeFloatSmall) {
   at::Tensor t = make_test_tensor(at::kFloat);
@@ -218,6 +226,96 @@ TEST_F(TakeTest, TakeExceptionOutOfRange) {
     write_result_to_file(&file, result);
   } catch (const std::exception& e) {
     file << "exception: ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeFloatNegativeIndex) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({-1, 0});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeFloatNegativeIndex ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeIntIndexThrows) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_int_index_tensor({0, 1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeIntIndexThrows ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeExceptionAtNumel) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({t.numel()});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeExceptionAtNumel ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeExceptionBelowNegativeNumel) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({-t.numel() - 1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeExceptionBelowNegativeNumel ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeCudaExceptionAtNumel) {
+  at::Tensor t = make_test_tensor(at::kFloat);
+  at::Tensor index = make_index_tensor({t.numel()});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCudaExceptionAtNumel ";
+  try {
+    at::Tensor result = at::take(t.cuda(), index.cuda());
+    write_result_to_file(&file, result.cpu());
+  } catch (const std::exception&) {
+    file << "exception ";
   }
   file << "\n";
   file.saveFile();
