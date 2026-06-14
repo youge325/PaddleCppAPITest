@@ -118,6 +118,21 @@ TEST_F(ColumnStackTest, ScalarAndVectorMismatch) {
   file.saveFile();
 }
 
+TEST_F(ColumnStackTest, ScalarAndSingleRowMatrix) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScalarAndSingleRowMatrix ";
+  at::Tensor scalar = at::full({}, 2.0f, at::kFloat);
+  at::Tensor matrix = at::arange(2, at::kFloat).reshape({1, 2});
+  std::vector<at::Tensor> tensors = {scalar, matrix};
+  at::Tensor result = at::column_stack(tensors);
+  write_column_stack_result_to_file(&file, result);
+  write_float_values_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
 TEST_F(ColumnStackTest, ScalarAndMatrixMismatch) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
