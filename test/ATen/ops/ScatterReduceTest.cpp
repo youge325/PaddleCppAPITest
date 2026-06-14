@@ -1,5 +1,6 @@
 #include <ATen/ATen.h>
 #include <ATen/core/Tensor.h>
+#include <ATen/ops/scatter_reduce.h>
 #include <gtest/gtest.h>
 
 #include <string>
@@ -489,6 +490,102 @@ TEST_F(ScatterReduceTest, ScatterReduceInplaceNegativeIndex) {
   file.saveFile();
 }
 
+// PyTorch C++ scatter_reduce accepts int32 index tensors.
+TEST_F(ScatterReduceTest, ScatterReduceIntIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceIntIndex ";
+
+  at::Tensor self = at::zeros({3, 5}, at::kFloat);
+  at::Tensor index = at::zeros({1, 5}, at::kInt);
+  index.data_ptr<int>()[0] = 0;
+  index.data_ptr<int>()[1] = 1;
+  index.data_ptr<int>()[2] = 2;
+  index.data_ptr<int>()[3] = 0;
+  index.data_ptr<int>()[4] = 0;
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 1.0f;
+  src.data_ptr<float>()[1] = 2.0f;
+  src.data_ptr<float>()[2] = 3.0f;
+  src.data_ptr<float>()[3] = 4.0f;
+  src.data_ptr<float>()[4] = 5.0f;
+  at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// PyTorch C++ scatter_reduce_ accepts int32 index tensors.
+TEST_F(ScatterReduceTest, ScatterReduceInplaceIntIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceIntIndex ";
+
+  at::Tensor self = at::zeros({3, 5}, at::kFloat);
+  at::Tensor index = at::zeros({1, 5}, at::kInt);
+  index.data_ptr<int>()[0] = 0;
+  index.data_ptr<int>()[1] = 1;
+  index.data_ptr<int>()[2] = 2;
+  index.data_ptr<int>()[3] = 0;
+  index.data_ptr<int>()[4] = 0;
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 1.0f;
+  src.data_ptr<float>()[1] = 2.0f;
+  src.data_ptr<float>()[2] = 3.0f;
+  src.data_ptr<float>()[3] = 4.0f;
+  src.data_ptr<float>()[4] = 5.0f;
+  self.scatter_reduce_(0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, self);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// PyTorch C++ scatter_reduce rejects non-empty floating index tensors.
+TEST_F(ScatterReduceTest, ScatterReduceFloatIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceFloatIndex ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::zeros({1, 2}, at::kFloat);
+    at::Tensor src = at::ones({1, 2}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+// PyTorch C++ scatter_reduce_ rejects non-empty floating index tensors.
+TEST_F(ScatterReduceTest, ScatterReduceInplaceFloatIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceFloatIndex ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::zeros({1, 2}, at::kFloat);
+    at::Tensor src = at::ones({1, 2}, at::kFloat);
+    self.scatter_reduce_(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, self);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Shape: small 2D, Dtype: kFloat, In-place scatter_reduce_
 TEST_F(ScatterReduceTest, ScatterReduceInplaceFloatSmall) {
   auto file_name = g_custom_param.get();
@@ -521,6 +618,23 @@ TEST_F(ScatterReduceTest, ScatterReduceEmpty) {
   at::Tensor self = at::zeros({0, 5}, at::kFloat);
   at::Tensor index = at::empty({0, 5}, at::kLong);
   at::Tensor src = at::empty({0, 5}, at::kFloat);
+  at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Boundary: empty floating index tensor is accepted by PyTorch C++.
+TEST_F(ScatterReduceTest, ScatterReduceEmptyFloatIndex) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceEmptyFloatIndex ";
+
+  at::Tensor self = at::zeros({0, 2}, at::kFloat);
+  at::Tensor index = at::empty({0, 2}, at::kFloat);
+  at::Tensor src = at::empty({0, 2}, at::kFloat);
   at::Tensor result = self.scatter_reduce(0, index, src, "sum");
   write_scatter_reduce_result_to_file(&file, result);
 
