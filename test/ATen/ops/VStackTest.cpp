@@ -33,6 +33,15 @@ static void write_vstack_result_to_file(FileManerger* file,
   }
 }
 
+static void write_float_values_to_file(FileManerger* file,
+                                       const at::Tensor& result) {
+  auto contiguous = result.contiguous();
+  const float* data = contiguous.data_ptr<float>();
+  for (int64_t i = 0; i < contiguous.numel(); ++i) {
+    *file << std::to_string(data[i]) << " ";
+  }
+}
+
 // ========== Shape 覆盖 ==========
 
 // 标量 (0-d tensor) -> vstack 后变成 2D
@@ -46,6 +55,7 @@ TEST_F(VStackTest, Scalar0D) {
   std::vector<at::Tensor> tensors = {t1, t2};
   at::Tensor result = at::vstack(tensors);
   write_vstack_result_to_file(&file, result);
+  write_float_values_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -61,6 +71,7 @@ TEST_F(VStackTest, SmallShape2D) {
   std::vector<at::Tensor> tensors = {t1, t2};
   at::Tensor result = at::vstack(tensors);
   write_vstack_result_to_file(&file, result);
+  write_float_values_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -76,6 +87,7 @@ TEST_F(VStackTest, SmallShape1D) {
   std::vector<at::Tensor> tensors = {t1, t2};
   at::Tensor result = at::vstack(tensors);
   write_vstack_result_to_file(&file, result);
+  write_float_values_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
@@ -214,6 +226,26 @@ TEST_F(VStackTest, EmptyListThrows) {
     at::Tensor result = at::vstack(tensors);
     file << "no_exception ";
     write_vstack_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(VStackTest, MismatchedShapeThrows) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "MismatchedShapeThrows ";
+  std::vector<at::Tensor> tensors = {
+      at::ones({2, 3}, at::TensorOptions().dtype(at::kFloat)),
+      at::zeros({2, 4}, at::TensorOptions().dtype(at::kFloat))};
+  try {
+    at::Tensor result = at::vstack(tensors);
+    file << "no_exception ";
+    write_vstack_result_to_file(&file, result);
+    write_float_values_to_file(&file, result);
   } catch (const std::exception&) {
     file << "exception ";
   }
