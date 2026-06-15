@@ -431,6 +431,46 @@ TEST_F(IndexReduceTest, IndexReduceFloatIndexThrows) {
   file.saveFile();
 }
 
+TEST_F(IndexReduceTest, IndexReduceNegativeIndexThrows) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i64({0, -1});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceNegativeIndexThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "prod");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(IndexReduceTest, IndexReduceUpperBoundIndexThrows) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor self = at::ones({3, 4}, options);
+  at::Tensor index = tensor_from_vector_i32({0, 3});
+  at::Tensor source = at::full({2, 4}, 2.0f, options);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexReduceUpperBoundIndexThrows ";
+  try {
+    (void)self.index_reduce(0, index, source, "prod");
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 TEST_F(IndexReduceTest, IndexReduceSourceDtypeMismatchThrows) {
   auto self_options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
   auto source_options = at::TensorOptions().dtype(at::kDouble).device(at::kCPU);
