@@ -401,11 +401,14 @@ TEST_F(IndexReduceTest, IndexReducePaddleReduceNameThrows) {
   FileManerger file(file_name);
   file.openAppend();
   file << "IndexReducePaddleReduceNameThrows ";
-  try {
-    (void)self.index_reduce(0, index, source, "add");
-    file << "no_exception ";
-  } catch (const std::exception&) {
-    file << "exception ";
+  const char* reduce_names[] = {"add", "assign", "multiply"};
+  for (const char* reduce : reduce_names) {
+    try {
+      (void)self.index_reduce(0, index, source, reduce);
+      file << "no_exception ";
+    } catch (const std::exception&) {
+      file << "exception ";
+    }
   }
   file << "\n";
   file.saveFile();
