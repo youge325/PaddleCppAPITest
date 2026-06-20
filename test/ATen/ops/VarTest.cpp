@@ -19,19 +19,8 @@ class VarTest : public ::testing::Test {
   void SetUp() override {}
 };
 
-// 返回当前用例的结果文件名
-std::string GetTestCaseResultFileName() {
-  std::string base = g_custom_param.get();
-  std::string test_name =
-      ::testing::UnitTest::GetInstance()->current_test_info()->name();
-  if (base.size() >= 4 && base.substr(base.size() - 4) == ".txt") {
-    base.resize(base.size() - 4);
-  }
-  return base + "_" + test_name + ".txt";
-}
-
 TEST_F(VarTest, VarDim) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.createFile();
   file << "VarDim ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -44,7 +33,7 @@ TEST_F(VarTest, VarDim) {
 }
 
 TEST_F(VarTest, VarAll) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "VarAll ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -57,7 +46,7 @@ TEST_F(VarTest, VarAll) {
 }
 
 TEST_F(VarTest, VarDims) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "VarDims ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -71,7 +60,7 @@ TEST_F(VarTest, VarDims) {
 }
 
 TEST_F(VarTest, VarCorrection) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "VarCorrection ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);

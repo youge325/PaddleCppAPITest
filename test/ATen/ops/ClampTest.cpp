@@ -19,19 +19,8 @@ class ClampTest : public ::testing::Test {
   void SetUp() override {}
 };
 
-// 返回当前用例的结果文件名
-std::string GetTestCaseResultFileName() {
-  std::string base = g_custom_param.get();
-  std::string test_name =
-      ::testing::UnitTest::GetInstance()->current_test_info()->name();
-  if (base.size() >= 4 && base.substr(base.size() - 4) == ".txt") {
-    base.resize(base.size() - 4);
-  }
-  return base + "_" + test_name + ".txt";
-}
-
 TEST_F(ClampTest, ClampScalarMinMax) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.createFile();
   file << "ClampScalarMinMax ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -44,7 +33,7 @@ TEST_F(ClampTest, ClampScalarMinMax) {
 }
 
 TEST_F(ClampTest, ClampTensorMinMax) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampTensorMinMax ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -57,7 +46,7 @@ TEST_F(ClampTest, ClampTensorMinMax) {
 }
 
 TEST_F(ClampTest, ClampInplaceScalar) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampInplaceScalar ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -69,7 +58,7 @@ TEST_F(ClampTest, ClampInplaceScalar) {
 }
 
 TEST_F(ClampTest, ClampInplaceTensor) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampInplaceTensor ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -82,7 +71,7 @@ TEST_F(ClampTest, ClampInplaceTensor) {
 }
 
 TEST_F(ClampTest, ClampMaxScalar) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMaxScalar ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -94,7 +83,7 @@ TEST_F(ClampTest, ClampMaxScalar) {
 }
 
 TEST_F(ClampTest, ClampMaxTensor) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMaxTensor ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -106,7 +95,7 @@ TEST_F(ClampTest, ClampMaxTensor) {
 }
 
 TEST_F(ClampTest, ClampMaxInplace) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMaxInplace ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -118,7 +107,7 @@ TEST_F(ClampTest, ClampMaxInplace) {
 }
 
 TEST_F(ClampTest, ClampMaxInplaceTensor) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMaxInplaceTensor ";
   at::Tensor input = at::ones({2, 3}, at::kFloat).fill_(5.0f);
@@ -130,7 +119,7 @@ TEST_F(ClampTest, ClampMaxInplaceTensor) {
 }
 
 TEST_F(ClampTest, ClampMinScalar) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMinScalar ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -142,7 +131,7 @@ TEST_F(ClampTest, ClampMinScalar) {
 }
 
 TEST_F(ClampTest, ClampMinTensor) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMinTensor ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -154,7 +143,7 @@ TEST_F(ClampTest, ClampMinTensor) {
 }
 
 TEST_F(ClampTest, ClampMinInplace) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMinInplace ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);
@@ -166,7 +155,7 @@ TEST_F(ClampTest, ClampMinInplace) {
 }
 
 TEST_F(ClampTest, ClampMinInplaceTensor) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "ClampMinInplaceTensor ";
   at::Tensor input = at::ones({2, 3}, at::kFloat);

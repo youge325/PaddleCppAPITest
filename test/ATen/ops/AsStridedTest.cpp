@@ -19,19 +19,8 @@ class AsStridedTest : public ::testing::Test {
   void SetUp() override {}
 };
 
-// 返回当前用例的结果文件名
-std::string GetTestCaseResultFileName() {
-  std::string base = g_custom_param.get();
-  std::string test_name =
-      ::testing::UnitTest::GetInstance()->current_test_info()->name();
-  if (base.size() >= 4 && base.substr(base.size() - 4) == ".txt") {
-    base.resize(base.size() - 4);
-  }
-  return base + "_" + test_name + ".txt";
-}
-
 TEST_F(AsStridedTest, AsStrided) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.createFile();
   file << "AsStrided ";
   at::Tensor tensor = at::ones({2, 3, 4}, at::kFloat);
@@ -44,7 +33,7 @@ TEST_F(AsStridedTest, AsStrided) {
 }
 
 TEST_F(AsStridedTest, AsStridedInplace) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "AsStridedInplace ";
   at::Tensor tensor = at::ones({2, 3, 4}, at::kFloat);
@@ -57,7 +46,7 @@ TEST_F(AsStridedTest, AsStridedInplace) {
 }
 
 TEST_F(AsStridedTest, AsStridedScatter) {
-  FileManerger file(GetTestCaseResultFileName());
+  FileManerger file(g_custom_param.get());
   file.openAppend();
   file << "AsStridedScatter ";
   at::Tensor tensor = at::ones({2, 3, 4}, at::kFloat);

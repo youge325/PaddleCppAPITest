@@ -8,6 +8,22 @@ PADDLE_PATH=${BUILD_PATH}/paddle/
 TORCH_PATH=${BUILD_PATH}/torch/
 RESULT_FILE_PATH="/tmp/paddle_cpp_api_test/"
 
+cleanup_coverage_data() {
+    local build_path="$1"
+    local gcda_count
+
+    if [[ ! -d "$build_path" ]]; then
+        return
+    fi
+
+    gcda_count=$(find "$build_path" -type f -name "*.gcda" | wc -l)
+    gcda_count=${gcda_count//[[:space:]]/}
+    if [[ "$gcda_count" -gt 0 ]]; then
+        echo "Cleaning ${gcda_count} stale .gcda coverage files under ${build_path}..."
+        find "$build_path" -type f -name "*.gcda" -delete
+    fi
+}
+
 # 保存原始终端输出，并在退出时稳定打印日志路径
 LOG_FILE="${RESULT_FILE_PATH}result_cmp_$(date +%Y%m%d_%H%M%S).log"
 mkdir -p "${RESULT_FILE_PATH}"
@@ -15,6 +31,8 @@ exec 3>&1 4>&2
 trap 'status=$?; printf "\nDone. Full output saved to: %s\n" "$LOG_FILE" | tee -a "$LOG_FILE" >&3; exit $status' EXIT
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "Log file: $LOG_FILE"
+
+cleanup_coverage_data "$BUILD_PATH"
 
 collect_and_run_executables() {
     local exec_path="$1"
@@ -59,8 +77,12 @@ for key in "${!TORCH_EXECUTABLES[@]}"; do
 done
 
 while IFS= read -r key; do
-    paddle_exec="${PADDLE_EXECUTABLES[$key]}"
-    torch_exec="${TORCH_EXECUTABLES[$key]}"
+    if [[ -z "$key" ]]; then
+        continue
+    fi
+
+    paddle_exec="${PADDLE_EXECUTABLES[$key]:-}"
+    torch_exec="${TORCH_EXECUTABLES[$key]:-}"
 
     if [[ -z "$paddle_exec" || -z "$torch_exec" ]]; then
         has_mismatch=1
