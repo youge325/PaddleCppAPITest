@@ -284,5 +284,55 @@ TEST_F(TransposeTest, TransposeSpecialValues) {
   file.saveFile();
 }
 
+TEST_F(TransposeTest, LargePositiveDimThrows) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "LargePositiveDimThrows ";
+
+  try {
+    (void)at::transpose(tensor, 1LL << 32, 1);
+    file << "ok ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  at::Tensor in_place = at::zeros({2, 3, 4}, at::kFloat);
+  try {
+    (void)in_place.transpose_(1LL << 32, 1);
+    file << "inplace_ok ";
+  } catch (const std::exception&) {
+    file << "inplace_exception ";
+  }
+  for (int64_t i = 0; i < in_place.dim(); ++i) {
+    file << std::to_string(in_place.sizes()[i]) << " ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TransposeTest, LargeNegativeDimThrows) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "LargeNegativeDimThrows ";
+
+  try {
+    (void)tensor.transpose(0, -(1LL << 32));
+    file << "member_ok ";
+  } catch (const std::exception&) {
+    file << "member_exception ";
+  }
+
+  try {
+    (void)at::transpose(tensor, 0, -(1LL << 32));
+    file << "free_ok ";
+  } catch (const std::exception&) {
+    file << "free_exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 }  // namespace test
 }  // namespace at
