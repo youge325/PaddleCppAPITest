@@ -58,5 +58,40 @@ TEST_F(AsStridedTest, AsStridedScatter) {
   file.saveFile();
 }
 
+TEST_F(AsStridedTest, AsStridedScatterPreservesInputShape) {
+  FileManerger file(g_custom_param.get());
+  file.openAppend();
+  file << "AsStridedScatterPreservesInputShape ";
+  at::Tensor tensor = at::arange(12, at::kFloat);
+  at::Tensor src = at::full({2, 3}, 99.0f, at::kFloat);
+  at::Tensor result = tensor.as_strided_scatter(src, {2, 3}, {3, 1});
+  file << std::to_string(result.dim()) << " ";
+  file << std::to_string(result.sizes()[0]) << " ";
+  float* data = result.data_ptr<float>();
+  for (int i = 0; i < 6; ++i) {
+    file << std::to_string(data[i]) << " ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(AsStridedTest, AsStridedScatterWithOffset) {
+  FileManerger file(g_custom_param.get());
+  file.openAppend();
+  file << "AsStridedScatterWithOffset ";
+  at::Tensor tensor = at::arange(12, at::kFloat);
+  at::Tensor src = at::full({2, 2}, 88.0f, at::kFloat);
+  at::Tensor result = tensor.as_strided_scatter(src, {2, 2}, {2, 1}, 2);
+  file << std::to_string(result.dim()) << " ";
+  file << std::to_string(result.sizes()[0]) << " ";
+  float* data = result.data_ptr<float>();
+  file << std::to_string(data[0]) << " ";
+  file << std::to_string(data[2]) << " ";
+  file << std::to_string(data[3]) << " ";
+  file << std::to_string(data[5]) << " ";
+  file << "\n";
+  file.saveFile();
+}
+
 }  // namespace test
 }  // namespace at
