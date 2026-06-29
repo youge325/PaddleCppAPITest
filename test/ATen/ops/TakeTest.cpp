@@ -5,8 +5,11 @@
 #include <ATen/ops/tensor.h>
 #include <ATen/ops/zeros.h>
 #include <c10/util/Exception.h>
+#include <c10/util/complex.h>
 #include <gtest/gtest.h>
 
+#include <complex>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -47,6 +50,40 @@ static void write_result_to_file(FileManerger* file, const at::Tensor& result) {
     for (int64_t i = 0; i < result.numel(); ++i) {
       *file << std::to_string(data[i]) << " ";
     }
+  } else if (result.scalar_type() == at::kBool) {
+    bool* data = result.data_ptr<bool>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(static_cast<int>(data[i])) << " ";
+    }
+  } else if (result.scalar_type() == at::kChar) {
+    int8_t* data = result.data_ptr<int8_t>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(static_cast<int>(data[i])) << " ";
+    }
+  } else if (result.scalar_type() == at::kHalf) {
+    at::Half* data = result.data_ptr<at::Half>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(static_cast<float>(data[i])) << " ";
+    }
+  } else if (result.scalar_type() == at::kBFloat16) {
+    at::BFloat16* data = result.data_ptr<at::BFloat16>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(static_cast<float>(data[i])) << " ";
+    }
+  } else if (result.scalar_type() == at::kComplexFloat) {
+    c10::complex<float>* data = result.data_ptr<c10::complex<float>>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      auto value = static_cast<std::complex<float>>(data[i]);
+      *file << std::to_string(value.real()) << " ";
+      *file << std::to_string(value.imag()) << " ";
+    }
+  } else if (result.scalar_type() == at::kComplexDouble) {
+    c10::complex<double>* data = result.data_ptr<c10::complex<double>>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      auto value = static_cast<std::complex<double>>(data[i]);
+      *file << std::to_string(value.real()) << " ";
+      *file << std::to_string(value.imag()) << " ";
+    }
   }
 }
 
@@ -78,6 +115,11 @@ static at::Tensor make_test_tensor(at::ScalarType dtype) {
 static at::Tensor make_index_tensor(const std::vector<int64_t>& values) {
   return at::tensor(at::ArrayRef<int64_t>(values),
                     at::TensorOptions().dtype(at::kLong));
+}
+
+static at::Tensor make_float_tensor(const std::vector<float>& values) {
+  return at::tensor(at::ArrayRef<float>(values),
+                    at::TensorOptions().dtype(at::kFloat));
 }
 
 static at::Tensor make_int_index_tensor(const std::vector<int32_t>& values) {
@@ -137,6 +179,99 @@ TEST_F(TakeTest, TakeLongSmall) {
   FileManerger file(file_name);
   file.openAppend();
   file << "TakeLongSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeBoolSmall) {
+  at::Tensor t = make_index_tensor({0, 1, 0, 1}).to(at::kBool);
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeBoolSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeCharSmall) {
+  std::vector<int8_t> values = {-4, -2, 3, 7};
+  at::Tensor t = at::tensor(at::ArrayRef<int8_t>(values),
+                            at::TensorOptions().dtype(at::kChar));
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCharSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeHalfSmall) {
+  at::Tensor t = make_float_tensor({1.5f, -2.0f, 0.5f, 4.0f}).to(at::kHalf);
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeHalfSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeBFloat16Small) {
+  at::Tensor t =
+      make_float_tensor({1.25f, -3.5f, 2.0f, 8.0f}).to(at::kBFloat16);
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeBFloat16Small ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeComplexFloatSmall) {
+  std::vector<c10::complex<float>> values = {
+      {1.0f, 2.0f}, {3.0f, -4.0f}, {-5.0f, 6.0f}, {7.0f, 8.0f}};
+  at::Tensor t = at::tensor(at::ArrayRef<c10::complex<float>>(values),
+                            at::TensorOptions().dtype(at::kComplexFloat));
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeComplexFloatSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeComplexDoubleSmall) {
+  std::vector<c10::complex<double>> values = {
+      {1.0, -2.0}, {-3.0, 4.0}, {5.0, -6.0}, {-7.0, -8.0}};
+  at::Tensor t = at::tensor(at::ArrayRef<c10::complex<double>>(values),
+                            at::TensorOptions().dtype(at::kComplexDouble));
+  at::Tensor index = make_index_tensor({0, 3, 1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeComplexDoubleSmall ";
   write_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
