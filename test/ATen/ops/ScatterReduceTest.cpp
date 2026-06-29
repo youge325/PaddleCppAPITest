@@ -87,6 +87,28 @@ TEST_F(ScatterReduceTest, ScatterReduceSumFloatSmall) {
   file.saveFile();
 }
 
+// API variant: free function at::scatter_reduce.
+TEST_F(ScatterReduceTest, ScatterReduceFreeFunctionSumFloatSmall) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceFreeFunctionSumFloatSmall ";
+
+  at::Tensor self = at::zeros({3, 5}, at::kFloat);
+  at::Tensor index = make_index_1x5();
+  at::Tensor src = at::full({1, 5}, 1.0f, at::kFloat);
+  src.data_ptr<float>()[0] = 1.0f;
+  src.data_ptr<float>()[1] = 2.0f;
+  src.data_ptr<float>()[2] = 3.0f;
+  src.data_ptr<float>()[3] = 4.0f;
+  src.data_ptr<float>()[4] = 5.0f;
+  at::Tensor result = at::scatter_reduce(self, 0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Shape: small 2D, Dtype: kDouble, Reduce: sum
 TEST_F(ScatterReduceTest, ScatterReduceSumDoubleSmall) {
   auto file_name = g_custom_param.get();
@@ -473,6 +495,64 @@ TEST_F(ScatterReduceTest, ScatterReduceInplaceNegativeIndex) {
     at::Tensor index = at::zeros({2, 4}, at::kLong);
     index.data_ptr<int64_t>()[0] = 0;
     index.data_ptr<int64_t>()[1] = -1;
+    index.data_ptr<int64_t>()[2] = 2;
+    index.data_ptr<int64_t>()[3] = 1;
+    index.data_ptr<int64_t>()[4] = 3;
+    index.data_ptr<int64_t>()[5] = 0;
+    index.data_ptr<int64_t>()[6] = 1;
+    index.data_ptr<int64_t>()[7] = 2;
+    at::Tensor src = at::ones({2, 4}, at::kFloat);
+    self.scatter_reduce_(1, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, self);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Exception: PyTorch scatter_reduce rejects index >= self.size(dim).
+TEST_F(ScatterReduceTest, ScatterReduceIndexUpperBound) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceIndexUpperBound ";
+
+  try {
+    at::Tensor self = at::zeros({2, 4}, at::kFloat);
+    at::Tensor index = at::zeros({2, 4}, at::kLong);
+    index.data_ptr<int64_t>()[0] = 0;
+    index.data_ptr<int64_t>()[1] = 4;
+    index.data_ptr<int64_t>()[2] = 2;
+    index.data_ptr<int64_t>()[3] = 1;
+    index.data_ptr<int64_t>()[4] = 3;
+    index.data_ptr<int64_t>()[5] = 0;
+    index.data_ptr<int64_t>()[6] = 1;
+    index.data_ptr<int64_t>()[7] = 2;
+    at::Tensor src = at::ones({2, 4}, at::kFloat);
+    at::Tensor result = self.scatter_reduce(1, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+// Exception: PyTorch scatter_reduce_ rejects index >= self.size(dim).
+TEST_F(ScatterReduceTest, ScatterReduceInplaceIndexUpperBound) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceIndexUpperBound ";
+
+  try {
+    at::Tensor self = at::zeros({2, 4}, at::kFloat);
+    at::Tensor index = at::zeros({2, 4}, at::kLong);
+    index.data_ptr<int64_t>()[0] = 0;
+    index.data_ptr<int64_t>()[1] = 4;
     index.data_ptr<int64_t>()[2] = 2;
     index.data_ptr<int64_t>()[3] = 1;
     index.data_ptr<int64_t>()[4] = 3;
