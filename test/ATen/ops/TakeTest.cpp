@@ -1,5 +1,6 @@
 #include <ATen/ATen.h>
 #include <ATen/core/Tensor.h>
+#include <ATen/ops/as_strided.h>
 #include <ATen/ops/full.h>
 #include <ATen/ops/take.h>
 #include <ATen/ops/tensor.h>
@@ -69,6 +70,13 @@ static void write_result_to_file(FileManerger* file, const at::Tensor& result) {
     at::BFloat16* data = result.data_ptr<at::BFloat16>();
     for (int64_t i = 0; i < result.numel(); ++i) {
       *file << std::to_string(static_cast<float>(data[i])) << " ";
+    }
+  } else if (result.scalar_type() == at::kFloat8_e5m2 ||
+             result.scalar_type() == at::kFloat8_e4m3fn) {
+    at::Tensor result_float = result.to(at::kFloat);
+    float* data = result_float.data_ptr<float>();
+    for (int64_t i = 0; i < result_float.numel(); ++i) {
+      *file << std::to_string(data[i]) << " ";
     }
   } else if (result.scalar_type() == at::kComplexFloat) {
     c10::complex<float>* data = result.data_ptr<c10::complex<float>>();
@@ -243,6 +251,44 @@ TEST_F(TakeTest, TakeBFloat16Small) {
   file.saveFile();
 }
 
+TEST_F(TakeTest, TakeFloat8E5M2Small) {
+  at::Tensor t =
+      make_float_tensor({1.0f, 2.0f, 4.0f, 8.0f}).to(at::kFloat8_e5m2);
+  at::Tensor index = make_index_tensor({0, 3, 1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeFloat8E5M2Small ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeFloat8E4M3FNSmall) {
+  at::Tensor t =
+      make_float_tensor({1.0f, 2.0f, 4.0f, 8.0f}).to(at::kFloat8_e4m3fn);
+  at::Tensor index = make_index_tensor({0, 3, 1});
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeFloat8E4M3FNSmall ";
+  try {
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
 TEST_F(TakeTest, TakeComplexFloatSmall) {
   std::vector<c10::complex<float>> values = {
       {1.0f, 2.0f}, {3.0f, -4.0f}, {-5.0f, 6.0f}, {7.0f, 8.0f}};
@@ -272,6 +318,36 @@ TEST_F(TakeTest, TakeComplexDoubleSmall) {
   FileManerger file(file_name);
   file.openAppend();
   file << "TakeComplexDoubleSmall ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeFloatNonContiguousInput) {
+  at::Tensor base = at::arange(6, at::TensorOptions().dtype(at::kFloat));
+  at::Tensor t = base.as_strided({3}, {2});
+  at::Tensor index = make_index_tensor({1});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeFloatNonContiguousInput ";
+  write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeFloatNonContiguousIndex) {
+  at::Tensor t = at::arange(6, at::TensorOptions().dtype(at::kFloat));
+  at::Tensor index_base = make_index_tensor({0, 1, 2, 3, 4, 5});
+  at::Tensor index = index_base.as_strided({3}, {2});
+  at::Tensor result = at::take(t, index);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeFloatNonContiguousIndex ";
   write_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
