@@ -218,7 +218,7 @@ bash test/result_cmp.sh ./build/
 
 闭环验证通过且文档已回填后，按以下流程提交。完整命令模板见 [`../add-compat-api/references/Step7.md`](../add-compat-api/references/Step7.md)（与 `add-compat-api` 共享同一份 references）。
 
-1. **从 fork 主分支 checkout 新分支**（`git fetch upstream && git checkout -B fix/<pr-or-issue-num>-<YYYYMMDD> upstream/develop`）
+1. **从本地跟踪 origin 的 develop 创建新分支**（`git checkout develop && git pull --ff-only origin develop && git checkout -b fix/<pr-or-issue-num>-<YYYYMMDD>`）
 2. **commit 改动**（commit message 首行使用 `[Cpp API Compatibility] <Compat 修复记录标题>`）
 3. **征求用户同意后 push 到 fork**（`git push origin <branch>`——这是发出去的动作，**push 前必须明确询问用户**）
 4. **征求用户同意后 `gh pr create` 到 upstream**（`--repo PaddlePaddle/Paddle --base develop`——同样需要用户确认；若本轮修复源自外部 PR/Actions/comment 链接，PR 描述里应**引用原链接**便于追溯）

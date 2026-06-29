@@ -5,6 +5,7 @@
 #include <torch/all.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/file_manager.h"
@@ -16,6 +17,11 @@ namespace test {
 
 using paddle_api_test::FileManerger;
 using paddle_api_test::ThreadSafeParam;
+
+static_assert(noexcept(std::declval<const at::TensorBase&>().is_same(
+    std::declval<const at::TensorBase&>())));
+static_assert(noexcept(std::declval<const at::TensorBase&>().use_count()));
+static_assert(noexcept(std::declval<const at::TensorBase&>().weak_use_count()));
 
 class TensorUtilTest : public ::testing::Test {
  protected:

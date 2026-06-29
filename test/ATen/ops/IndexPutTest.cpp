@@ -1,4 +1,5 @@
 #include <ATen/ATen.h>
+#include <ATen/TensorIndexing.h>
 #include <ATen/ops/full.h>
 #include <ATen/ops/index_put.h>
 #include <gtest/gtest.h>
@@ -185,6 +186,63 @@ TEST(TensorBodyTest, IndexPutAccumulateTrue) {
   FileManerger file(file_name);
   file.openAppend();
   file << "IndexPutAccumulateTrue ";
+  write_index_result_to_file(&file, base);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST(TensorBodyTest, IndexPutTensorIndexNoneValue) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor base = at::zeros({2, 3}, options);
+  at::Tensor values = at::full({1, 2, 3}, 6.0f, options);
+
+  base.index_put_({at::indexing::None}, values);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexPutTensorIndexNoneValue ";
+  write_index_result_to_file(&file, base);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST(TensorBodyTest, IndexPutTensorIndexTensorNoneAndSlice) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor base = at::zeros({3, 4}, options);
+  at::Tensor idx = tensor_from_vector_i64({2, 0});
+  at::Tensor values = at::full({2, 1, 4}, 8.0f, options);
+
+  base.index_put_({idx, at::indexing::None, at::indexing::Slice()}, values);
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexPutTensorIndexTensorNoneAndSlice ";
+  file << std::to_string(base.dim()) << " ";
+  file << std::to_string(base.numel()) << " ";
+  file << std::to_string(base.sizes()[0]) << " ";
+  file << std::to_string(base.sizes()[1]) << " ";
+  at::Tensor cont = base.contiguous();
+  float* data = cont.data_ptr<float>();
+  file << std::to_string(data[0]) << " ";
+  file << std::to_string(data[4]) << " ";
+  file << std::to_string(data[8]) << " ";
+  file << std::to_string(cont.sum().item<float>()) << " ";
+  file << "\n";
+  file.saveFile();
+}
+
+TEST(TensorBodyTest, IndexPutTensorIndexNoneScalar) {
+  auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCPU);
+  at::Tensor base = at::zeros({2, 3}, options);
+
+  base.index_put_({at::indexing::None}, at::Scalar(4.0));
+
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "IndexPutTensorIndexNoneScalar ";
   write_index_result_to_file(&file, base);
   file << "\n";
   file.saveFile();
