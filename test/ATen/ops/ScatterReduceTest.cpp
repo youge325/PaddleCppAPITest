@@ -722,6 +722,88 @@ TEST_F(ScatterReduceTest, ScatterReduceEmptyFloatIndex) {
   file.saveFile();
 }
 
+TEST_F(ScatterReduceTest, ScatterReduceEmptyIndexRankMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceEmptyIndexRankMismatch ";
+
+  at::Tensor self = at::zeros({2, 2}, at::kFloat);
+  float* self_data = self.data_ptr<float>();
+  self_data[0] = 1.0f;
+  self_data[1] = 2.0f;
+  self_data[2] = 3.0f;
+  self_data[3] = 4.0f;
+  at::Tensor index = at::empty({0}, at::kLong);
+  at::Tensor src = at::empty({0}, at::kFloat);
+  at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceInplaceEmptyIndexRankMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceEmptyIndexRankMismatch ";
+
+  at::Tensor self = at::zeros({2, 2}, at::kFloat);
+  float* self_data = self.data_ptr<float>();
+  self_data[0] = 1.0f;
+  self_data[1] = 2.0f;
+  self_data[2] = 3.0f;
+  self_data[3] = 4.0f;
+  at::Tensor index = at::empty({0}, at::kLong);
+  at::Tensor src = at::empty({0}, at::kFloat);
+  self.scatter_reduce_(0, index, src, "sum");
+  write_scatter_reduce_result_to_file(&file, self);
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceEmptyIndexSrcDtypeMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceEmptyIndexSrcDtypeMismatch ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::empty({0}, at::kLong);
+    at::Tensor src = at::empty({0}, at::kInt);
+    at::Tensor result = self.scatter_reduce(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(ScatterReduceTest, ScatterReduceInplaceEmptyIndexSrcDtypeMismatch) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ScatterReduceInplaceEmptyIndexSrcDtypeMismatch ";
+
+  try {
+    at::Tensor self = at::zeros({2, 2}, at::kFloat);
+    at::Tensor index = at::empty({0}, at::kLong);
+    at::Tensor src = at::empty({0}, at::kInt);
+    self.scatter_reduce_(0, index, src, "sum");
+    write_scatter_reduce_result_to_file(&file, self);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+
+  file << "\n";
+  file.saveFile();
+}
+
 // Shape: small 2D, Dtype: kFloat, Reduce: prod, include_self=false
 TEST_F(ScatterReduceTest, ScatterReduceProdFloatNoIncludeSelf) {
   auto file_name = g_custom_param.get();
