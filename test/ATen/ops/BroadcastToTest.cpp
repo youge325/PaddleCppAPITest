@@ -7,6 +7,11 @@
 
 #include "src/file_manager.h"
 
+#if USE_PADDLE_API
+#include "paddle/common/flags.h"
+COMMON_DECLARE_bool(use_stride_kernel);
+#endif
+
 extern paddle_api_test::ThreadSafeParam g_custom_param;
 
 namespace at {
@@ -17,6 +22,29 @@ using paddle_api_test::FileManerger;
 class BroadcastToTest : public ::testing::Test {
  protected:
   void SetUp() override {}
+};
+
+class UseStrideKernelGuard {
+ public:
+  explicit UseStrideKernelGuard(bool value) {
+#if USE_PADDLE_API
+    previous_ = FLAGS_use_stride_kernel;
+    FLAGS_use_stride_kernel = value;
+#else
+    (void)value;
+#endif
+  }
+
+  ~UseStrideKernelGuard() {
+#if USE_PADDLE_API
+    FLAGS_use_stride_kernel = previous_;
+#endif
+  }
+
+ private:
+#if USE_PADDLE_API
+  bool previous_{true};
+#endif
 };
 
 // Compute element offset from flat index using strides (strides-aware access)
@@ -87,6 +115,26 @@ static void write_broadcast_to_result_to_file(FileManerger* file,
     default:
       *file << "unsupported_dtype ";
       break;
+  }
+}
+
+// Values-only writer for cases where Paddle intentionally materializes a
+// broadcast while PyTorch returns a stride-0 view.
+static void write_broadcast_values_only_to_file(FileManerger* file,
+                                                const at::Tensor& result) {
+  *file << std::to_string(result.dim()) << " ";
+  *file << std::to_string(result.numel()) << " ";
+  for (int64_t i = 0; i < result.dim(); ++i) {
+    *file << std::to_string(result.sizes()[i]) << " ";
+  }
+  if (result.numel() == 0) {
+    *file << "empty ";
+    return;
+  }
+  float* data = result.data_ptr<float>();
+  for (int64_t i = 0; i < result.numel(); ++i) {
+    int64_t offset = compute_offset_from_flat_index(i, result);
+    *file << std::to_string(data[offset]) << " ";
   }
 }
 
@@ -313,6 +361,39 @@ TEST_F(BroadcastToTest, BroadcastToStrideZeroValues) {
   t.data_ptr<float>()[1] = 7.0f;
   at::Tensor result = t.broadcast_to({3, 2});
   write_broadcast_to_result_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(BroadcastToTest, BroadcastToStrideKernelDisabledValuesOnly) {
+  UseStrideKernelGuard guard(false);
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BroadcastToStrideKernelDisabledValuesOnly ";
+
+  at::Tensor t = at::zeros({1, 2}, at::kFloat);
+  t.data_ptr<float>()[0] = 3.0f;
+  t.data_ptr<float>()[1] = 7.0f;
+  at::Tensor result = t.broadcast_to({3, 2});
+  write_broadcast_values_only_to_file(&file, result);
+
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(BroadcastToTest, ExpandStrideKernelDisabledValuesOnly) {
+  UseStrideKernelGuard guard(false);
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ExpandStrideKernelDisabledValuesOnly ";
+
+  at::Tensor t = at::ones({1}, at::kFloat);
+  t.data_ptr<float>()[0] = 5.0f;
+  at::Tensor result = t.expand({2, 3});
+  write_broadcast_values_only_to_file(&file, result);
 
   file << "\n";
   file.saveFile();
