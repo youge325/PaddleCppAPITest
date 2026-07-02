@@ -51,6 +51,16 @@ static void write_result_to_file(FileManerger* file, const at::Tensor& result) {
     for (int64_t i = 0; i < result.numel(); ++i) {
       *file << std::to_string(data[i]) << " ";
     }
+  } else if (result.scalar_type() == at::kUInt16) {
+    uint16_t* data = result.data_ptr<uint16_t>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(data[i]) << " ";
+    }
+  } else if (result.scalar_type() == at::kUInt32) {
+    uint32_t* data = result.data_ptr<uint32_t>();
+    for (int64_t i = 0; i < result.numel(); ++i) {
+      *file << std::to_string(data[i]) << " ";
+    }
   } else if (result.scalar_type() == at::kBool) {
     bool* data = result.data_ptr<bool>();
     for (int64_t i = 0; i < result.numel(); ++i) {
@@ -247,6 +257,40 @@ TEST_F(TakeTest, TakeBFloat16Small) {
   file.openAppend();
   file << "TakeBFloat16Small ";
   write_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeUInt16Throws) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeUInt16Throws ";
+  try {
+    at::Tensor t = make_index_tensor({2, 2, 2, 2}).to(at::kUInt16);
+    at::Tensor index = make_index_tensor({0, 3, 1});
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeUInt32Throws) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeUInt32Throws ";
+  try {
+    at::Tensor t = make_index_tensor({2, 2, 2, 2}).to(at::kUInt32);
+    at::Tensor index = make_index_tensor({0, 3, 1});
+    at::Tensor result = at::take(t, index);
+    write_result_to_file(&file, result);
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
   file << "\n";
   file.saveFile();
 }
@@ -567,6 +611,40 @@ TEST_F(TakeTest, TakeCudaExceptionBelowNegativeNumel) {
   file.openAppend();
   file << "TakeCudaExceptionBelowNegativeNumel ";
   try {
+    at::Tensor result = at::take(t.cuda(), index.cuda());
+    write_result_to_file(&file, result.cpu());
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeCudaUInt16Throws) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCudaUInt16Throws ";
+  try {
+    at::Tensor t = make_index_tensor({2, 2, 2, 2}).to(at::kUInt16);
+    at::Tensor index = make_index_tensor({0, 3, 1});
+    at::Tensor result = at::take(t.cuda(), index.cuda());
+    write_result_to_file(&file, result.cpu());
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(TakeTest, TakeCudaUInt32Throws) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "TakeCudaUInt32Throws ";
+  try {
+    at::Tensor t = make_index_tensor({2, 2, 2, 2}).to(at::kUInt32);
+    at::Tensor index = make_index_tensor({0, 3, 1});
     at::Tensor result = at::take(t.cuda(), index.cuda());
     write_result_to_file(&file, result.cpu());
   } catch (const std::exception&) {
