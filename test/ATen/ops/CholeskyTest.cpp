@@ -3,6 +3,7 @@
 #include <ATen/ops/cholesky.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <string>
@@ -131,6 +132,79 @@ static at::Tensor make_spd_matrix(const std::vector<int64_t>& shape,
   return A;
 }
 
+template <typename T>
+static double max_reconstruction_error_data(const at::Tensor& factor,
+                                            const at::Tensor& original,
+                                            bool upper) {
+  const T* factor_data = factor.data_ptr<T>();
+  const T* original_data = original.data_ptr<T>();
+  const int64_t ndim = factor.dim();
+  const int64_t n = factor.size(ndim - 1);
+  const int64_t batch = factor.numel() / (n * n);
+  std::vector<int64_t> factor_strides(ndim);
+  std::vector<int64_t> original_strides(ndim);
+  for (int64_t i = 0; i < ndim; ++i) {
+    factor_strides[i] = factor.stride(i);
+    original_strides[i] = original.stride(i);
+  }
+
+  double max_error = 0.0;
+  for (int64_t b = 0; b < batch; ++b) {
+    const int64_t factor_batch_offset = ndim == 3 ? b * factor_strides[0] : 0;
+    const int64_t original_batch_offset =
+        ndim == 3 ? b * original_strides[0] : 0;
+    for (int64_t i = 0; i < n; ++i) {
+      for (int64_t j = 0; j < n; ++j) {
+        double reconstructed = 0.0;
+        for (int64_t k = 0; k < n; ++k) {
+          const int64_t left_idx =
+              factor_batch_offset + (upper ? k * factor_strides[ndim - 2] +
+                                                 i * factor_strides[ndim - 1]
+                                           : i * factor_strides[ndim - 2] +
+                                                 k * factor_strides[ndim - 1]);
+          const int64_t right_idx =
+              factor_batch_offset + (upper ? k * factor_strides[ndim - 2] +
+                                                 j * factor_strides[ndim - 1]
+                                           : j * factor_strides[ndim - 2] +
+                                                 k * factor_strides[ndim - 1]);
+          reconstructed += static_cast<double>(factor_data[left_idx]) *
+                           static_cast<double>(factor_data[right_idx]);
+        }
+        const int64_t original_idx = original_batch_offset +
+                                     i * original_strides[ndim - 2] +
+                                     j * original_strides[ndim - 1];
+        max_error = std::max(
+            max_error,
+            std::fabs(reconstructed -
+                      static_cast<double>(original_data[original_idx])));
+      }
+    }
+  }
+  return max_error;
+}
+
+static double max_reconstruction_error(const at::Tensor& factor,
+                                       const at::Tensor& original,
+                                       bool upper) {
+  if (factor.scalar_type() == at::kFloat) {
+    return max_reconstruction_error_data<float>(factor, original, upper);
+  }
+  return max_reconstruction_error_data<double>(factor, original, upper);
+}
+
+static void write_reconstruction_error_to_file(FileManerger* file,
+                                               const at::Tensor& factor,
+                                               const at::Tensor& original,
+                                               bool upper) {
+  const double max_error = max_reconstruction_error(factor, original, upper);
+  *file << std::to_string(factor.dim()) << " ";
+  *file << std::to_string(factor.numel()) << " ";
+  for (int64_t i = 0; i < factor.dim(); ++i) {
+    *file << std::to_string(factor.sizes()[i]) << " ";
+  }
+  *file << std::to_string(max_error) << " ";
+}
+
 class CholeskyTest : public ::testing::Test {
  protected:
   void SetUp() override {}
@@ -199,6 +273,48 @@ TEST_F(CholeskyTest, BatchMatrix) {
   at::Tensor A = make_spd_matrix({2, 3, 3}, at::kFloat);
   at::Tensor result = at::cholesky(A);
   write_cholesky_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(CholeskyTest, LowerReconstructsInput) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "LowerReconstructsInput ";
+  at::Tensor A = make_spd_matrix({3, 3}, at::kFloat);
+  at::Tensor result = at::cholesky(A);
+  const double max_error = max_reconstruction_error(result, A, false);
+  EXPECT_LT(max_error, 1e-4);
+  write_reconstruction_error_to_file(&file, result, A, false);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(CholeskyTest, UpperReconstructsInput) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "UpperReconstructsInput ";
+  at::Tensor A = make_spd_matrix({3, 3}, at::kFloat);
+  at::Tensor result = at::cholesky(A, /*upper=*/true);
+  const double max_error = max_reconstruction_error(result, A, true);
+  EXPECT_LT(max_error, 1e-4);
+  write_reconstruction_error_to_file(&file, result, A, true);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(CholeskyTest, BatchReconstructsInput) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "BatchReconstructsInput ";
+  at::Tensor A = make_spd_matrix({2, 3, 3}, at::kFloat);
+  at::Tensor result = at::cholesky(A);
+  const double max_error = max_reconstruction_error(result, A, false);
+  EXPECT_LT(max_error, 1e-4);
+  write_reconstruction_error_to_file(&file, result, A, false);
   file << "\n";
   file.saveFile();
 }
