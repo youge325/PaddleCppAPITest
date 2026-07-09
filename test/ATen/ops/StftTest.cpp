@@ -263,6 +263,44 @@ TEST_F(StftTest, PyTorchStyleCenterFalseOverload) {
   file.saveFile();
 }
 
+TEST_F(StftTest, FreeFunctionLegacySchema) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "FreeFunctionLegacySchema ";
+  at::Tensor result = at::stft(test_tensor,
+                               /*n_fft=*/8,
+                               /*hop_length=*/4,
+                               /*win_length=*/8,
+                               /*window=*/::std::nullopt,
+                               /*normalized=*/false,
+                               /*onesided=*/true,
+                               /*return_complex=*/true);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, FreeFunctionPyTorchStyleCenterFalseOverload) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "FreeFunctionPyTorchStyleCenterFalseOverload ";
+  at::Tensor result = at::stft(test_tensor,
+                               /*n_fft=*/8,
+                               /*hop_length=*/4,
+                               /*win_length=*/8,
+                               /*window=*/::std::nullopt,
+                               /*center=*/false,
+                               /*pad_mode=*/"reflect",
+                               /*normalized=*/true,
+                               /*onesided=*/true,
+                               /*return_complex=*/true);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
 TEST_F(StftTest, ReturnComplexUnspecifiedRealInputThrows) {
   auto file_name = g_custom_param.get();
   FileManerger file(file_name);
