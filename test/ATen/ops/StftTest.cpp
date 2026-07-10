@@ -35,28 +35,27 @@ static void write_stft_result_to_file(FileManerger* file,
   // 写出 dtype
   *file << std::to_string(static_cast<int>(contig.scalar_type())) << " ";
 
-  // 只写出每帧 DC 分量(bin 0)的实部，作为 FFT 已执行的验证
-  int64_t n_frames = contig.sizes()[contig.dim() - 1];
-  int64_t freq_bins = contig.sizes()[contig.dim() - 2];
-  for (int64_t f = 0; f < n_frames; ++f) {
+  // 只写出第一个 batch 中每帧 DC 分量(bin 0)的实部，作为 FFT 已执行的验证
+  const bool is_complex = contig.scalar_type() == at::kComplexFloat ||
+                          contig.scalar_type() == at::kComplexDouble;
+  int64_t n_frames = contig.sizes()[contig.dim() - (is_complex ? 1 : 2)];
+  for (int64_t frame = 0; frame < n_frames; ++frame) {
     if (contig.scalar_type() == at::kComplexFloat) {
       std::complex<float>* data =
           reinterpret_cast<std::complex<float>*>(contig.data_ptr());
-      *file << std::to_string(data[f * freq_bins].real()) << " ";
+      *file << std::to_string(data[frame].real()) << " ";
     } else if (contig.scalar_type() == at::kComplexDouble) {
       std::complex<double>* data =
           reinterpret_cast<std::complex<double>*>(contig.data_ptr());
-      *file << std::to_string(data[f * freq_bins].real()) << " ";
+      *file << std::to_string(data[frame].real()) << " ";
     } else if (contig.scalar_type() == at::kFloat) {
       // return_complex=false: shape [..., freq, frames, 2], last dim = [real,
       // imag]
       float* data = reinterpret_cast<float*>(contig.data_ptr());
-      int64_t stride = freq_bins * 2;
-      *file << std::to_string(data[f * stride]) << " ";
+      *file << std::to_string(data[frame * 2]) << " ";
     } else if (contig.scalar_type() == at::kDouble) {
       double* data = reinterpret_cast<double*>(contig.data_ptr());
-      int64_t stride = freq_bins * 2;
-      *file << std::to_string(data[f * stride]) << " ";
+      *file << std::to_string(data[frame * 2]) << " ";
     } else {
       *file << "unsupported_dtype ";
     }
@@ -313,7 +312,7 @@ TEST_F(StftTest, ReturnComplexUnspecifiedRealInputThrows) {
                            /*win_length=*/8,
                            /*window=*/::std::nullopt,
                            /*normalized=*/false,
-                           /*onesided=*/true);
+                           /*onesided=*/::std::optional<bool>{true});
   } catch (const std::exception&) {
     thrown = true;
     file << "exception ";
@@ -321,6 +320,145 @@ TEST_F(StftTest, ReturnComplexUnspecifiedRealInputThrows) {
   if (!thrown) {
     file << "no_exception ";
   }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, CenterReflect) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "CenterReflect ";
+  at::Tensor result = test_tensor.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/::std::nullopt,
+      /*center=*/true,
+      /*pad_mode=*/"reflect",
+      /*normalized=*/false,
+      /*onesided=*/::std::nullopt,
+      /*return_complex=*/true);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, CenterConstant) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "CenterConstant ";
+  at::Tensor result = test_tensor.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/::std::nullopt,
+      /*center=*/true,
+      /*pad_mode=*/"constant",
+      /*normalized=*/false,
+      /*onesided=*/::std::nullopt,
+      /*return_complex=*/true);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, ComplexFloatDefaultOnesided) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ComplexFloatDefaultOnesided ";
+  at::Tensor input = at::ones({16}, at::kComplexFloat);
+  at::Tensor result = input.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/::std::nullopt,
+      /*normalized=*/false,
+      /*onesided=*/::std::nullopt,
+      /*return_complex=*/::std::nullopt);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, ComplexDoubleCenterReflect) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ComplexDoubleCenterReflect ";
+  at::Tensor input = at::ones({16}, at::kComplexDouble);
+  at::Tensor result = input.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/::std::nullopt,
+      /*center=*/true,
+      /*pad_mode=*/"reflect",
+      /*normalized=*/false,
+      /*onesided=*/::std::nullopt,
+      /*return_complex=*/::std::nullopt);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, ComplexOnesidedTrueThrows) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ComplexOnesidedTrueThrows ";
+  try {
+    at::Tensor input = at::ones({16}, at::kComplexFloat);
+    (void)input.stft(/*n_fft=*/8,
+                     /*hop_length=*/4,
+                     /*win_length=*/8,
+                     /*window=*/::std::nullopt,
+                     /*normalized=*/false,
+                     /*onesided=*/::std::optional<bool>{true},
+                     /*return_complex=*/true);
+    file << "no_exception ";
+  } catch (const std::exception&) {
+    file << "exception ";
+  }
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, ComplexWindowDefaultOnesided) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "ComplexWindowDefaultOnesided ";
+  at::Tensor window = at::ones({8}, at::kComplexFloat);
+  at::Tensor result = test_tensor.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/window,
+      /*normalized=*/false,
+      /*onesided=*/::std::nullopt,
+      /*return_complex=*/::std::nullopt);
+  write_stft_result_to_file(&file, result);
+  file << "\n";
+  file.saveFile();
+}
+
+TEST_F(StftTest, RealOnesidedFalse) {
+  auto file_name = g_custom_param.get();
+  FileManerger file(file_name);
+  file.openAppend();
+  file << "RealOnesidedFalse ";
+  at::Tensor result = test_tensor.stft(
+      /*n_fft=*/8,
+      /*hop_length=*/4,
+      /*win_length=*/8,
+      /*window=*/::std::nullopt,
+      /*normalized=*/false,
+      /*onesided=*/::std::optional<bool>{false},
+      /*return_complex=*/true);
+  write_stft_result_to_file(&file, result);
   file << "\n";
   file.saveFile();
 }
